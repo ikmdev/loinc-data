@@ -10,7 +10,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>dev.ikm.snomedct</groupId>
+    <groupId>dev.ikm.loinc</groupId>
     <artifactId>loinc-data</artifactId>
     <version>US_PRODUCTION_US1000124_20240901T120000Z-SNAPSHOT</version>
     <packaging>pom</packaging>
