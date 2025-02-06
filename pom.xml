@@ -16,17 +16,13 @@
     <packaging>pom</packaging>
 
     <name>LOINC Data</name>
-
-<!--    <modules>
-        <module>loinc-data-origin</module>
+    <modules>
         <module>plugin</module>
-        <module>loinc-data-starterdata</module>
-        <module>loinc-data-binding</module>
-        <module>loinc-data-pipeline</module>
-        <module>loinc-data-owl-transform</module>
-        <module>loinc-data-reasoner</module>
-        <module>loinc-data-integration</module>
-    </modules>-->
+        <module>plugin/loinc-transformation-maven-plugin</module>
+        <module>loinc-pipeline</module>
+        <module>plugin/loinc-starter-data-maven-plugin</module>
+        <module>loinc-starter-data</module>
+    </modules>
 
     <properties>
         <!-- maven plugins -->
