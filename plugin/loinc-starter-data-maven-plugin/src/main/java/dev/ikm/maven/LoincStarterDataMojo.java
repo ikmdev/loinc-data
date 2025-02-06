@@ -40,7 +40,7 @@ import static dev.ikm.tinkar.terms.TinkarTerm.STATUS_VALUE;
 import static dev.ikm.tinkar.terms.TinkarTerm.UNIVERSALLY_UNIQUE_IDENTIFIER;
 import static dev.ikm.tinkar.terms.TinkarTerm.USER;
 
-@Mojo(name = "run-snomed-starterdata", defaultPhase = LifecyclePhase.INSTALL)
+@Mojo(name = "run-loinc-starterdata", defaultPhase = LifecyclePhase.INSTALL)
 public class LoincStarterDataMojo extends AbstractMojo {
 
     private static final long STAMP_TIME = System.currentTimeMillis();
