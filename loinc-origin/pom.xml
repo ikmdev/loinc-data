@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.ikm.loinc</groupId>
+        <artifactId>loinc-data</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>loinc-origin</artifactId>
+    <packaging>pom</packaging>
+
+    <name>loinc-origin</name>
+
+    <build>
+        <plugins>
+            <!-- Unzip source data -->
+            <plugin>
+                <groupId>dev.ikm.maven</groupId>
+                <artifactId>unzip-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>process-origin</id>
+                        <goals>
+                            <goal>unzip-source</goal>
+                        </goals>
+                        <configuration>
+                            <source>${source.zip}</source>
+                            <outputDirectory>${origin.working.directory}</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Create Manifest file-->
+            <plugin>
+                <groupId>dev.ikm.maven</groupId>
+                <artifactId>tinkar-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>create-origin-manifest</id>
+                        <goals>
+                            <goal>generate-manifest-resource</goal>
+                        </goals>
+                        <configuration>
+                            <packagerName>${packager.name}</packagerName>
+                            <originVersion>${project.version}</originVersion>
+                            <originURL>${origin.url}</originURL>
+                            <originNamespace>${origin.namespace}</originNamespace>
+                            <outputDirectory>${origin.working.directory}</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Assemble and zip data into Tinkar Origin Artifact -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-origin-artifact</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <inlineDescriptors>
+                                <inlineDescriptor>
+                                    <id>data</id>
+                                    <formats>
+                                        <format>zip</format>
+                                    </formats>
+                                    <fileSets>
+                                        <fileSet>
+                                            <outputDirectory>src</outputDirectory>
+                                            <directory>${origin.working.directory}</directory>
+                                            <includes>
+                                                <include>**</include>
+                                            </includes>
+                                            <excludes>
+                                                <exclude>MANIFEST.MF</exclude>
+                                            </excludes>
+                                        </fileSet>
+                                        <fileSet>
+                                            <outputDirectory>META-INF</outputDirectory>
+                                            <directory>${origin.working.directory}</directory>
+                                            <includes>
+                                                <include>MANIFEST.MF</include>
+                                            </includes>
+                                        </fileSet>
+                                    </fileSets>
+                                    <includeBaseDirectory>false</includeBaseDirectory>
+                                </inlineDescriptor>
+                            </inlineDescriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Attach Tinkar Origin Artifact to project -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-artifacts</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>attach-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>${project.build.directory}/${project.artifactId}-${project.version}-data.zip
+                                    </file>
+                                    <type>zip</type>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Deploy to Nexus -->
+            <!--            <plugin>-->
+            <!--                <groupId>org.apache.maven.plugins</groupId>-->
+            <!--                <artifactId>maven-deploy-plugin</artifactId>-->
+            <!--                <version>3.1.2</version>-->
+            <!--                <configuration>-->
+
+            <!--                </configuration>-->
+            <!--            </plugin>-->
+        </plugins>
+    </build>
+</project>
