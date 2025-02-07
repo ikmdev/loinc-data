@@ -9,7 +9,7 @@
 
     <groupId>dev.ikm.maven</groupId>
     <artifactId>loinc-pipeline</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
     <name>loinc-pipeline</name>
     <url>http://maven.apache.org</url>
