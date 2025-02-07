@@ -7,7 +7,6 @@
         <groupId>dev.ikm.tinkar</groupId>
         <artifactId>loinc-data-bom</artifactId>
         <version>1.0.0</version>
-        <relativePath/>
     </parent>
 
     <groupId>dev.ikm.loinc</groupId>
@@ -18,8 +17,9 @@
     <name>LOINC Data</name>
     <modules>
         <module>loinc-origin</module>
-<!--        <module>plugin</module>-->
-<!--        <module>loinc-starterdata</module>-->
+        <module>plugin</module>
+        <module>loinc-pipeline</module>
+        <module>loinc-starterdata</module>
 <!--        <module>loinc-binding</module>-->
 <!--        <module>loinc-pipeline</module>-->
 <!--        <module>loinc-owl-transform</module>-->
