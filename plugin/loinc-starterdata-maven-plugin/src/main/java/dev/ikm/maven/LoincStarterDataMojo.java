@@ -56,9 +56,14 @@ public class LoincStarterDataMojo extends AbstractMojo {
     private String controllerName;
 
     public void execute() throws MojoExecutionException {
-        init();
-        transform();
-        cleanup();
+        try {
+            init();
+            transform();
+            cleanup();
+        }
+        catch (Exception e) {
+            throw new MojoExecutionException("Failed to execute class", e);
+        }
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(LoincStarterDataMojo.class);

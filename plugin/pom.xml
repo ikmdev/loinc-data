@@ -8,7 +8,7 @@
     </parent>
 
     <artifactId>plugin</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
     <name>plugin</name>
     <url>http://maven.apache.org</url>
@@ -16,6 +16,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <modules>
+        <module>loinc-transformation-maven-plugin</module>
+        <module>loinc-starterdata-maven-plugin</module>
+    </modules>
 
     <dependencies>
         <dependency>
@@ -26,10 +31,6 @@
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-annotations</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.ikm.tinkar</groupId>
-            <artifactId>composer</artifactId>
         </dependency>
         <dependency>
             <groupId>dev.ikm.tinkar</groupId>

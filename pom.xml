@@ -18,10 +18,8 @@
     <name>LOINC Data</name>
     <modules>
         <module>plugin</module>
-        <module>plugin/loinc-transformation-maven-plugin</module>
         <module>loinc-pipeline</module>
-        <module>plugin/loinc-starter-data-maven-plugin</module>
-        <module>loinc-starter-data</module>
+        <module>loinc-starterdata</module>
     </modules>
 
     <properties>

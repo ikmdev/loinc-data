@@ -7,11 +7,10 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>dev.ikm.maven</groupId>
-    <artifactId>loinc-starter-data</artifactId>
-    <packaging>jar</packaging>
+    <artifactId>loinc-starterdata</artifactId>
+    <packaging>pom</packaging>
 
-    <name>loinc-starter-data</name>
+    <name>loinc-starterdata</name>
     <url>http://maven.apache.org</url>
 
     <build>
@@ -34,8 +33,8 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>dev.ikm.maven</groupId>
-                <artifactId>snomed-ct-starterdata-maven-plugin</artifactId>
+                <groupId>dev.ikm.loinc</groupId>
+                <artifactId>loinc-starterdata-maven-plugin</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <configuration>
                     <namespaceString>${origin.namespace}</namespaceString>
@@ -43,10 +42,10 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>run-snomed-starterdata</id>
+                        <id>run-loinc-starterdata</id>
                         <phase>install</phase>
                         <goals>
-                            <goal>run-snomed-starterdata</goal>
+                            <goal>run-loinc-starterdata</goal>
                         </goals>
                     </execution>
                 </executions>
