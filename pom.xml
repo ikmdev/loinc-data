@@ -16,9 +16,15 @@
 
     <name>LOINC Data</name>
     <modules>
+        <module>loinc-origin</module>
         <module>plugin</module>
         <module>loinc-pipeline</module>
         <module>loinc-starterdata</module>
+<!--        <module>loinc-binding</module>-->
+<!--        <module>loinc-pipeline</module>-->
+<!--        <module>loinc-owl-transform</module>-->
+<!--        <module>loinc-reasoner</module>-->
+<!--        <module>loinc-integration</module>-->
     </modules>
 
     <properties>
@@ -30,7 +36,7 @@
 
         <!-- origin -->
         <origin.working.directory>${project.build.directory}/origin-sources</origin.working.directory>
-        <source.zip>SnomedCT_InternationalRF2_PRODUCTION_20241201T120000Z.zip</source.zip>
+        <source.zip>Loinc_2.78.zip</source.zip>
     </properties>
     <dependencyManagement>
         <dependencies>
