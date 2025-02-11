@@ -21,7 +21,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>dev.ikm.maven</groupId>
+                <groupId>dev.ikm.maven.tinkar</groupId>
                 <artifactId>tinkar-maven-plugin</artifactId>
                 <executions>
                     <execution>
