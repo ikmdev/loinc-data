@@ -11,7 +11,7 @@
 
     <groupId>dev.ikm.loinc</groupId>
     <artifactId>loinc-data</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-IKDT-844-update-loinc-data-pipeline-unzip-usage-from-maven-artifacts-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>LOINC Data</name>
