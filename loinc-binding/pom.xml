@@ -1,0 +1,58 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.ikm.loinc</groupId>
+        <artifactId>loinc-data</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <groupId>dev.ikm.maven</groupId>
+    <artifactId>loinc-binding</artifactId>
+    <packaging>jar</packaging>
+
+    <name>loinc-binding</name>
+    <url>http://maven.apache.org</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>dev.ikm.maven</groupId>
+                <artifactId>tinkar-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>export-java-binding</id>
+                        <goals>
+                            <goal>generate-java-binding</goal>
+                        </goals>
+                        <configuration>
+                            <bindingOutputFile>${user.home}/Solor/TestBinding.java</bindingOutputFile>
+                            <author>Binding Test Author</author>
+                            <packageName>dev.ikm.tinkar.binding.test</packageName>
+                            <namespace>f3051292-ce74-4b2c-b70c-b190594d0532</namespace>
+                            <characterReplacements>
+                                <characterReplacement>
+                                    <character>+</character>
+                                    <replacement>_PLUS</replacement>
+                                </characterReplacement>
+                                <characterReplacement>
+                                    <character>/</character>
+                                    <replacement>_SLASH_</replacement>
+                                </characterReplacement>
+                            </characterReplacements>
+                            <stampConfiguration>DEVELOPMENT_LATEST</stampConfiguration>
+                            <languageConfigurations>
+                                <languageConfiguration>US_ENGLISH_REGULAR_NAME</languageConfiguration>
+                                <languageConfiguration>US_ENGLISH_FULLY_QUALIFIED_NAME</languageConfiguration>
+                            </languageConfigurations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
