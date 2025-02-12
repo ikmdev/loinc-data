@@ -19,8 +19,8 @@
         <plugins>
             <!-- Unzip source data -->
             <plugin>
-                <groupId>dev.ikm.maven</groupId>
-                <artifactId>unzip-maven-plugin</artifactId>
+                <groupId>dev.ikm.maven.tinkar</groupId>
+                <artifactId>tinkar-maven-plugin</artifactId>
                 <executions>
                     <execution>
                         <id>process-origin</id>
@@ -32,13 +32,6 @@
                             <outputDirectory>${origin.working.directory}</outputDirectory>
                         </configuration>
                     </execution>
-                </executions>
-            </plugin>
-            <!-- Create Manifest file-->
-            <plugin>
-                <groupId>dev.ikm.maven</groupId>
-                <artifactId>tinkar-maven-plugin</artifactId>
-                <executions>
                     <execution>
                         <id>create-origin-manifest</id>
                         <goals>
