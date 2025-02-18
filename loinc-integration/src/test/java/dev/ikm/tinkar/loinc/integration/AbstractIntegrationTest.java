@@ -1,4 +1,4 @@
-package dev.ikm.tinkar.snomedct.integration;
+package dev.ikm.tinkar.loinc.integration;
 
 import dev.ikm.tinkar.common.service.CachingService;
 import dev.ikm.tinkar.common.service.PrimitiveData;
