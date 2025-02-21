@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.ikm.loinc</groupId>
         <artifactId>loinc-data</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-AR299-Java23-SNAPSHOT</version>
     </parent>
 
     <groupId>dev.ikm.maven</groupId>
