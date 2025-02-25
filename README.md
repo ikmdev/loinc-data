@@ -10,7 +10,7 @@ Team Ownership - Product Owner
 
 Required for running this:
 
-1. Download and install Open JDK Java 19
+1. Download and install Open JDK Java 23
 
 ## Building and Running
 
