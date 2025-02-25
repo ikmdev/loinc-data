@@ -22,8 +22,8 @@ import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-public abstract class AbstractIntegrationTest {
-    Logger log = LoggerFactory.getLogger(AbstractIntegrationTest.class);
+public abstract class LoincAbstractIntegrationTest {
+    Logger log = LoggerFactory.getLogger(LoincAbstractIntegrationTest.class);
 
     @AfterAll
     public static void shutdown() {
@@ -82,8 +82,8 @@ public abstract class AbstractIntegrationTest {
              BufferedWriter bw = new BufferedWriter(new FileWriter(errorFile))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.startsWith("id")) continue;
-                if (!assertLine(line.split("\\t"))) {
+                if ((line.startsWith("id")) || (line.startsWith("LOINC_NUM"))) continue;
+                if (!assertLine(line.split(","))) {
                     notFound++;
                     bw.write(line);
                 }
