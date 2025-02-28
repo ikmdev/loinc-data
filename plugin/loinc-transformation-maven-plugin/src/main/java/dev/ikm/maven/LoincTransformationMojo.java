@@ -456,6 +456,7 @@ public class LoincTransformationMojo extends AbstractMojo {
      * and includes role group fields for COMPONENT, PROPERTY, TIME_ASPCT, SYSTEM, SCALE_TYP, and METHOD_TYP.
      */
     // TODO: Incorporate / attach Pattern
+    // TODO: Reference configureSemanticsForConcept in snomed-ct data - place URI in Utility
     private void createStatedDefinitionSemantic(Session session, EntityProxy.Concept concept,
                                                String component, String property, String timeAspect,
                                                String system, String scaleType, String methodType) {
