@@ -28,6 +28,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -55,7 +59,11 @@ public class LoincTransformationMojo extends AbstractMojo {
     @Parameter(property = "controllerName", defaultValue = "Open SpinedArrayStore")
     private String controllerName;
 
+    @Parameter(property = "threadCount", defaultValue = "4")
+    private int threadCount;
+
     private UUID namespace;
+    private ExecutorService executorService;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -63,9 +71,54 @@ public class LoincTransformationMojo extends AbstractMojo {
 
         this.namespace = UUID.fromString(namespaceString);
         File datastore = new File(datastorePath);
+        this.executorService = Executors.newFixedThreadPool(threadCount);
 
         // Load part.csv into a map keyed by PartTypeName (Column B) , 1
-        Map<String, PartData> partMap = new HashMap<>();
+        Map<String, PartData> partMap = loadPartMap();
+
+        // Read loinc.csv and collect unique values from the eight fields.
+        Set<String> uniqueValues = collectUniqueValuesFromLoinc();
+
+        initializeDatastore(datastore);
+        EntityService.get().beginLoadPhase();
+
+        try {
+            Composer composer = new Composer("Loinc Transformer Composer");
+
+            // Use CompletableFuture for parallel processing of part concepts
+            List<CompletableFuture<Void>> partConceptFutures = new ArrayList<>();
+            for (String value : uniqueValues) {
+                PartData partData = partMap.get(value);
+                if (partData == null) {
+                    LOG.warn("No matching part found in part.csv for value: " + value);
+                    continue;
+                }
+
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    createLoincPartConcept(partData, composer);
+                }, executorService);
+                partConceptFutures.add(future);
+            }
+            // Wait for all part concept creation tasks to complete
+            CompletableFuture.allOf(partConceptFutures.toArray(new CompletableFuture[0])).join();
+            // Process LOINC rows for semantics and create LOINC concepts in parallel
+            processLoincRowsMultithreaded(composer, partMap);
+            composer.commitAllSessions();
+        } finally {
+            executorService.shutdown();
+
+            EntityService.get().endLoadPhase();
+            PrimitiveData.stop();
+            LOG.info("########## Loinc Transformation Completed.");
+        }
+    }
+
+    // Read loinc.csv and collect unique values from the eight fields.
+    // CSV Columns
+    // 0: LOINC_NUM, 1: COMPONENT, 2: PROPERTY, 3: TIME_ASPCT, 4: SYSTEM,
+    // 5: SCALE_TYP, 6: METHOD_TYP, 7: CLASS, 13: CLASSTYPE
+    private Map<String, PartData> loadPartMap() throws MojoExecutionException {
+        Map<String, PartData> partMap = new ConcurrentHashMap<>();
         try(BufferedReader reader = new BufferedReader(new FileReader(partCsv))) {
             String header = reader.readLine();
             String line;
@@ -87,12 +140,15 @@ public class LoincTransformationMojo extends AbstractMojo {
         } catch (IOException e){
             throw new MojoExecutionException("Error reading part.csv", e);
         }
+        return partMap;
+    }
 
-        // Read loinc.csv and collect unique values from the eight fields.
-        // CSV Columns
-        // 0: LOINC_NUM, 1: COMPONENT, 2: PROPERTY, 3: TIME_ASPCT, 4: SYSTEM,
-        // 5: SCALE_TYP, 6: METHOD_TYP, 7: CLASS, 13: CLASSTYPE
-        Set<String> uniqueValues = new HashSet<>();
+    /**
+     * Collects unique values from the specified columns in loinc.csv
+     */
+    private Set<String> collectUniqueValuesFromLoinc() throws MojoExecutionException {
+        Set<String> uniqueValues = ConcurrentHashMap.newKeySet();
+        Map<String, String> partToLoincMap = new ConcurrentHashMap<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(loincCsv))) {
             String header = reader.readLine(); // skip header
             String line;
@@ -102,7 +158,6 @@ public class LoincTransformationMojo extends AbstractMojo {
                     LOG.warn("Invalid line in loinc.csv: " + line);
                     continue;
                 }
-                uniqueValues.add(removeQuotes(columns[0])); // LOINC NUM
                 uniqueValues.add(removeQuotes(columns[1]));  // COMPONENT
                 uniqueValues.add(removeQuotes(columns[2]));  // PROPERTY
                 uniqueValues.add(removeQuotes(columns[3]));  // TIME_ASPCT
@@ -112,40 +167,17 @@ public class LoincTransformationMojo extends AbstractMojo {
                 uniqueValues.add(removeQuotes(columns[7]));  // CLASS
                 uniqueValues.add(removeQuotes(columns[13])); // CLASSTYPE
             }
+
         } catch (IOException e) {
             throw new MojoExecutionException("Error reading loinc.csv", e);
         }
-//        uniqueValues.remove(""); // remove any empty values?
-
-        initializeDatastore(datastore);
-        EntityService.get().beginLoadPhase();
-
-        try {
-            Composer composer = new Composer("Loinc Transformer Composer");
-
-            //For each unique value from loinc.csv, find the corresponding part and create a concept.
-            for (String value : uniqueValues) {
-                PartData partData = partMap.get(value);
-                if (partData == null) {
-                    LOG.warn("No matching part found in part.csv for value: " + value);
-                    continue;
-                }
-                createLoincPartConcept(partData, composer);
-            }
-            // process every row in loinc.csv to create additional semantics.
-            processLoincRowsForSemantics(composer, partMap);
-            composer.commitAllSessions();
-        } finally {
-            EntityService.get().endLoadPhase();
-            PrimitiveData.stop();
-            LOG.info("########## Loinc Transformation Completed.");
-        }
+        return uniqueValues;
     }
 
     /**
      * Creates a new LOINC concept based on the provided part data.
      */
-    private void createLoincPartConcept(PartData partData, Composer composer) {
+    private void createLoincPartConcept(PartData partData, Composer composer, String loincnum) {
         State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
 
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace); // Regenstrief Institute, Inc. Author
@@ -172,10 +204,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                                 .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
                                 .attach(usDialect()))
                         .attach((Identifier identifier) -> identifier
-                                .source(TinkarTerm.UNIVERSALLY_UNIQUE_IDENTIFIER)
-                                .identifier(conceptUuid.toString()))
-                        .attach((Identifier identifier) -> identifier
-                                .source(TinkarTerm.LOINC_COMPONENT)  // is this the correct Tinkar Term?
+                                .source(TinkarTerm.LOINC_COMPONENT)  // loinc num - connecting loinc concept
                                 .identifier(partData.getPartNumber())) // Column A
                         .attach(new StatedAxiom()
                                 .isA(parent)); // Column B
@@ -185,7 +214,94 @@ public class LoincTransformationMojo extends AbstractMojo {
         }
     }
 
-    private void processLoincRowsForSemantics(Composer composer, Map<String, PartData> partMap) {
+    /**
+     * Creates a new LOINC concept based on the LOINC row data.
+     * This creates a concept for each row in the LOINC CSV.
+     */
+    // TODO: Incorporate / attach Pattern
+    private void createLoincRowConcept(Composer composer, String[] columns) {
+        String loincNum = removeQuotes(columns[0]);
+        String longCommonName = removeQuotes(columns[25]);
+        String consumerName = removeQuotes(columns[12]);
+        String shortName = removeQuotes(columns[20]);
+        String displayName = removeQuotes(columns[39]);
+        String status = removeQuotes(columns[36]); // STATUS column
+
+        State state = State.ACTIVE;
+        if ("DEPRECATED".equals(status)) {
+            state = State.INACTIVE;
+        }
+
+        EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
+        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace);
+        EntityProxy.Concept path = LoincUtility.getPathConcept(namespace);
+
+        UUID conceptUuid = UuidT5Generator.get(namespace, loincNum);
+        String identifier = UuidT5Generator.get(namespace, loincNum).toString(); // Using the LOINC_NUM as identifier
+
+        Session session = composer.open(state, author, module, path);
+
+        try {
+            EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(conceptUuid));
+
+            session.compose((ConceptAssembler assembler) -> {
+                // Create the concept with FQN and synonyms
+                assembler.concept(concept)
+                        .attach((FullyQualifiedName fqn) -> fqn
+                                .language(ENGLISH_LANGUAGE)
+                                .text(longCommonName) // LONG_COMMON_NAME as FQN
+                                .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
+                                .attach(usDialect()));
+
+                if (consumerName != null && !consumerName.isEmpty()) {
+                    assembler.attach((Synonym syn) -> syn
+                            .language(ENGLISH_LANGUAGE)
+                            .text(consumerName)
+                            .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
+                            .attach(usDialect()));
+                }
+
+                if (shortName != null && !shortName.isEmpty()) {
+                    assembler.attach((Synonym syn) -> syn
+                            .language(ENGLISH_LANGUAGE)
+                            .text(shortName)
+                            .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
+                            .attach(usDialect()));
+                }
+
+                if (displayName != null && !displayName.isEmpty()) {
+                    assembler.attach((Synonym syn) -> syn
+                            .language(ENGLISH_LANGUAGE)
+                            .text(displayName)
+                            .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
+                            .attach(usDialect()));
+                }
+
+                assembler.attach((Identifier identifierObj) -> identifierObj
+                        .source(TinkarTerm.UNIVERSALLY_UNIQUE_IDENTIFIER)
+                        .identifier(identifier));
+
+                // Add status pattern semantics if needed
+                if ("TRIAL".equals(status)) {
+                    // TODO: Add LOINC TRIAL STATUS Pattern Semantic
+                    // Implement when pattern is defined
+                } else if ("DISCOURAGED".equals(status)) {
+                    // TODO: Add LOINC DISCOURAGED STATUS Pattern Semantic
+                    // Implement implemented when pattern is defined
+                }
+            });
+        } catch (Exception e) {
+            LOG.error("Error creating concept for LOINC: " + loincNum, e);
+        }
+    }
+
+    /**
+     * Process LOINC rows and create semantics in parallel
+     */
+    private void processLoincRowsMultithreaded(Composer composer, Map<String, PartData> partMap) {
+        List<String[]> loincRows = new ArrayList<>();
+
+        // First, read all rows from the CSV file
         try (BufferedReader reader = new BufferedReader(new FileReader(loincCsv))) {
             String header = reader.readLine(); // skip header
             String line;
@@ -195,73 +311,98 @@ public class LoincTransformationMojo extends AbstractMojo {
                     LOG.warn("Invalid loinc.csv row (insufficient columns): " + line);
                     continue;
                 }
-                // Determine the partData by checking the eight fields in order.
-                String[] candidateIndices = { columns[1], columns[2], columns[3], columns[4],
-                        columns[5], columns[6], columns[7], columns[13] };
-                PartData partData = null;
-                for (String candidate : candidateIndices) {
-                    partData = partMap.get(removeQuotes(candidate));
-                    if (partData != null) {
-                        break;
-                    }
-                }
-                if (partData == null) {
-                    LOG.warn("No matching part found for loinc.csv row: " + line);
-                    continue;
-                }
-
-                UUID conceptUuid = UuidT5Generator.get(namespace, partData.getPartNumber());
-                State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
-                long time = System.currentTimeMillis();
-                EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
-                EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace);
-                EntityProxy.Concept path = LoincUtility.getPathConcept(namespace);
-                Session session = composer.open(state, time, author, module, path);
-
-                try {
-                    EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(conceptUuid));
-
-                    // Create the six semantics by calling separate methods.
-                    createDescriptionSemantic(session, concept,
-                            removeQuotes(columns[25]), // LONG_COMMON_NAME
-                            removeQuotes(columns[12]), // CONSUMER_NAME
-                            removeQuotes(columns[20]), // SHORTNAME
-                            removeQuotes(columns[19]), // RELATEDNAMES2
-                            removeQuotes(columns[39]), // DISPLAYNAME
-                            removeQuotes(columns[10])  // DEFINITIONDESCRIPTION
-                    );
-
-                    createIdentifierSemantic(session, concept,
-                            removeQuotes(columns[0])   // LOINC_NUM
-                    );
-
-                    createStatedDefinitionSemantic(session, concept,
-                            removeQuotes(columns[1]), // COMPONENT
-                            removeQuotes(columns[2]), // PROPERTY
-                            removeQuotes(columns[3]), // TIME_ASPCT
-                            removeQuotes(columns[4]), // SYSTEM
-                            removeQuotes(columns[5]), // SCALE_TYP
-                            removeQuotes(columns[6])  // METHOD_TYP
-                    );
-
-                    createLoincClassSemantic(session, concept,
-                            removeQuotes(columns[7]),  // CLASS
-                            removeQuotes(columns[13])  // CLASSTYPE
-                    );
-
-                    createExampleUcumUnitsSemantic(session, concept,
-                            removeQuotes(columns[24])  // EXAMPLE_UNITS
-                    );
-
-                    createTestMembershipSemantic(session, concept,
-                            removeQuotes(columns[21])  // ORDER_OBS
-                    );
-                } catch (Exception e) {
-                    LOG.error("Error creating semantics for row: " + line, e);
-                }
+                loincRows.add(columns);
             }
         } catch (IOException e) {
             LOG.error("Error reading loinc.csv for semantic processing", e);
+            return;
+        }
+
+        // Process rows in parallel
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (String[] columns : loincRows) {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                // Create a LOINC row concept
+                createLoincRowConcept(composer, columns);
+
+                // Process part-related semantics
+                processLoincRowForSemantics(composer, columns, partMap);
+            }, executorService);
+
+            futures.add(future);
+        }
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+    }
+
+    /**
+     * Process a single LOINC row for semantic creation
+     */
+    private void processLoincRowForSemantics(Composer composer, String[] columns, Map<String, PartData> partMap) {
+        // Determine the partData by checking the eight fields in order.
+        String[] candidateIndices = { columns[1], columns[2], columns[3], columns[4],
+                columns[5], columns[6], columns[7], columns[13] };
+        PartData partData = null;
+        for (String candidate : candidateIndices) {
+            partData = partMap.get(removeQuotes(candidate));
+            if (partData != null) {
+                break;
+            }
+        }
+        if (partData == null) {
+            LOG.warn("No matching part found for loinc.csv row with LOINC_NUM: " + removeQuotes(columns[0]));
+            return;
+        }
+
+        UUID conceptUuid = UuidT5Generator.get(namespace, partData.getPartNumber());
+        State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
+        long time = System.currentTimeMillis();
+        EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
+        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace);
+        EntityProxy.Concept path = LoincUtility.getPathConcept(namespace);
+        Session session = composer.open(state, time, author, module, path);
+
+        try {
+            EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(conceptUuid));
+
+            // Create the six semantics by calling separate methods.
+            createDescriptionSemantic(session, concept,
+                    removeQuotes(columns[25]), // LONG_COMMON_NAME
+                    removeQuotes(columns[12]), // CONSUMER_NAME
+                    removeQuotes(columns[20]), // SHORTNAME
+                    removeQuotes(columns[19]), // RELATEDNAMES2
+                    removeQuotes(columns[39]), // DISPLAYNAME
+                    removeQuotes(columns[10])  // DEFINITIONDESCRIPTION
+            );
+
+            createIdentifierSemantic(session, concept,
+                    removeQuotes(columns[0])   // LOINC_NUM
+            );
+
+            createStatedDefinitionSemantic(session, concept,
+                    removeQuotes(columns[1]), // COMPONENT
+                    removeQuotes(columns[2]), // PROPERTY
+                    removeQuotes(columns[3]), // TIME_ASPCT
+                    removeQuotes(columns[4]), // SYSTEM
+                    removeQuotes(columns[5]), // SCALE_TYP
+                    removeQuotes(columns[6])  // METHOD_TYP
+            );
+
+            createLoincClassSemantic(session, concept,
+                    removeQuotes(columns[7]),  // CLASS
+                    removeQuotes(columns[13])  // CLASSTYPE
+            );
+
+            createExampleUcumUnitsSemantic(session, concept,
+                    removeQuotes(columns[24])  // EXAMPLE_UNITS
+            );
+
+            createTestMembershipSemantic(session, concept,
+                    removeQuotes(columns[21])  // ORDER_OBS
+            );
+        } catch (Exception e) {
+            LOG.error("Error creating semantics for LOINC: " + removeQuotes(columns[0]), e);
         }
     }
 
@@ -314,16 +455,16 @@ public class LoincTransformationMojo extends AbstractMojo {
      * Creates a stated definition semantic that attaches an [IS A] relationship to [Observable Entity]
      * and includes role group fields for COMPONENT, PROPERTY, TIME_ASPCT, SYSTEM, SCALE_TYP, and METHOD_TYP.
      */
+    // TODO: Incorporate / attach Pattern
     private void createStatedDefinitionSemantic(Session session, EntityProxy.Concept concept,
                                                String component, String property, String timeAspect,
                                                String system, String scaleType, String methodType) {
         try {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(
-                                PublicIds.of(UuidT5Generator.get(namespace, concept.toString()))))
+                                PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component))))
                         .reference(concept)
                         .fieldValues(fv -> fv
-//                                .with(TinkarTerm.OBSERVABLE_ENTITY) // Placeholder for Observable Entity concept ??
                                 .with(component)
                                 .with(property)
                                 .with(timeAspect)
@@ -340,13 +481,12 @@ public class LoincTransformationMojo extends AbstractMojo {
     /**
      * Creates a LOINC class semantic that attaches CLASS and CLASSTYPE.
      */
+    // TODO: Incorporate / attach Pattern
     private void createLoincClassSemantic(Session session, EntityProxy.Concept concept,
                                           String loincClass, String loincClassType) {
         try {
             session.compose((SemanticAssembler assembler) -> {
-                assembler.semantic(EntityProxy.Semantic.make(
-                                PublicIds.of(UuidT5Generator.get(namespace, concept.toString()))))
-//                        .pattern(TinkarTerm.LOINC) // Placeholder constant - Attach
+                assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + loincClass))))
                         .reference(concept)
                         .fieldValues(fv -> fv
                                 .with(loincClass)
@@ -361,12 +501,11 @@ public class LoincTransformationMojo extends AbstractMojo {
     /**
      * Creates an Example UCUM Units semantic using the EXAMPLE_UNITS string.
      */
+    // TODO: Incorporate / attach UCUM Pattern
     private void createExampleUcumUnitsSemantic(Session session, EntityProxy.Concept concept, String exampleUnits) {
         try {
             session.compose((SemanticAssembler assembler) -> {
-                assembler.semantic(EntityProxy.Semantic.make(
-                                PublicIds.of(UuidT5Generator.get(namespace,concept.toString()))))
-//                        .pattern(TinkarTerm.LOINC_UCUM_UNITS_PATTERN) // Placeholder constant
+                assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace,concept.toString() + exampleUnits))))
                         .reference(concept)
                         .fieldValues(fv -> fv.with(exampleUnits));
             });
@@ -382,23 +521,25 @@ public class LoincTransformationMojo extends AbstractMojo {
      * "Both" -> both patterns,
      * "Subset" -> Test Subset Pattern.
      */
+//TODO: incorporate pattern based on orderObs String, fix semantic and field values
     private void createTestMembershipSemantic(Session session, EntityProxy.Concept concept, String orderObs) {
+        if ("Order".equalsIgnoreCase(orderObs)) {
+
+        } else if ("Observed".equalsIgnoreCase(orderObs)) {
+
+        } else if ("Both".equalsIgnoreCase(orderObs)) {
+
+        } else if ("Subset".equalsIgnoreCase(orderObs)) {
+
+        }
+
         try {
             session.compose((SemanticAssembler assembler) -> {
-                assembler.semantic(EntityProxy.Semantic.make(
-                                PublicIds.of(UuidT5Generator.get(namespace,concept.toString()))))
-//                        .pattern(TinkarTerm.TEST_MEMBERSHIP_PATTERN) // Placeholder constant
+                assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + orderObs))))
+//                        .pattern()
                         .reference(concept)
                         .fieldValues(fv -> {
-                            if ("Order".equalsIgnoreCase(orderObs)) {
-                                fv.with("Test Orderable Pattern"); // CONSTANT??
-                            } else if ("Observed".equalsIgnoreCase(orderObs)) {
-                                fv.with("Test Reportable Pattern");
-                            } else if ("Both".equalsIgnoreCase(orderObs)) {
-                                fv.with("Test Orderable Pattern").with("Test Reportable Pattern");
-                            } else if ("Subset".equalsIgnoreCase(orderObs)) {
-                                fv.with("Test Subset Pattern");
-                            }
+
                         });
             });
         } catch (Exception e) {
