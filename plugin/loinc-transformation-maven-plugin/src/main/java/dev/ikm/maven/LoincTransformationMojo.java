@@ -177,7 +177,7 @@ public class LoincTransformationMojo extends AbstractMojo {
     /**
      * Creates a new LOINC concept based on the provided part data.
      */
-    private void createLoincPartConcept(PartData partData, Composer composer, String loincnum) {
+    private void createLoincPartConcept(PartData partData, Composer composer) {
         State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
 
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace); // Regenstrief Institute, Inc. Author
