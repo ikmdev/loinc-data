@@ -54,12 +54,12 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j2-impl</artifactId>
         </dependency>
-        <dependency>
-            <groupId>dev.ikm.maven</groupId>
-            <artifactId>loinc-transformation-maven-plugin</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>dev.ikm.maven</groupId>-->
+<!--            <artifactId>loinc-transformation-maven-plugin</artifactId>-->
+<!--            <version>1.0.0-SNAPSHOT</version>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
     </dependencies>
 
     <build>
