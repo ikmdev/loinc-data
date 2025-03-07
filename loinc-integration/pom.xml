@@ -55,7 +55,7 @@
             <artifactId>log4j-slf4j2-impl</artifactId>
         </dependency>
         <dependency>
-            <groupId>dev.ikm.maven</groupId>
+            <groupId>dev.ikm.loinc</groupId>
             <artifactId>loinc-transformation-maven-plugin</artifactId>
             <version>1.0.0-SNAPSHOT</version>
             <scope>test</scope>
