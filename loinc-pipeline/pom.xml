@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
@@ -9,13 +11,42 @@
 
     <groupId>dev.ikm.maven</groupId>
     <artifactId>loinc-pipeline</artifactId>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <name>loinc-pipeline</name>
     <url>http://maven.apache.org</url>
 
     <properties>
+        <maven.compiler.source>23</maven.compiler.source>
+        <maven.compiler.target>23</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>dev.ikm.loinc</groupId>
+                <artifactId>loinc-transformation-maven-plugin</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <configuration>
+                    <namespaceString>${origin.namespace}</namespaceString>
+                    <partCsv>${project.build.directory}/../../loinc-origin/target/origin-sources/AccessoryFiles/PartFile/Part.csv</partCsv>
+                    <loincCsv>${project.build.directory}/../../loinc-origin/target/origin-sources/LoincTable/Loinc.csv</loincCsv>
+                    <datastorePath>${user.home}/Solor/generated-data</datastorePath>
+                    <inputDirectoryPath>${user.home}/.m2/repository/dev/ikm/loinc/loinc-origin/${project.version}/loinc-origin-${project.version}-data.zip</inputDirectoryPath>
+                    <dataOutputPath>${project.build.directory}</dataOutputPath>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>run-loinc-transformation</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>run-loinc-transformation</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
