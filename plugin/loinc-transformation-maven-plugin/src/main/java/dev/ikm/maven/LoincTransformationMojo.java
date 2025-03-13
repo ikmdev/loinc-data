@@ -44,14 +44,15 @@ public class LoincTransformationMojo extends AbstractMojo {
     @Parameter(property = "origin.namespace", required = true)
     String namespaceString;
 
-    @Parameter(property = "partCsv", required = true)
     private File partCsv;
 
-    @Parameter(property = "loincCsv", required = true)
     private File loincCsv;
 
     @Parameter(property = "datastorePath", required = true)
     private String datastorePath;
+
+    @Parameter(property = "inputDirectoryPath", required = true)
+    private String inputDirectoryPath;
 
     @Parameter(property = "dataOutputPath", required = true)
     private String dataOutputPath;
@@ -71,6 +72,13 @@ public class LoincTransformationMojo extends AbstractMojo {
 
         this.namespace = UUID.fromString(namespaceString);
         File datastore = new File(datastorePath);
+
+        try {
+            unzipRawData(inputDirectoryPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         this.executorService = Executors.newFixedThreadPool(threadCount);
 
         // Load part.csv into a map keyed by PartTypeName (Column B) , 1
@@ -112,6 +120,52 @@ public class LoincTransformationMojo extends AbstractMojo {
             LOG.info("########## Loinc Transformation Completed.");
         }
     }
+
+
+    private void unzipRawData(String zipFilePath) throws IOException {
+        File outputDirectory = new File(dataOutputPath);
+        try(ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFilePath))) {
+            ZipEntry zipEntry;
+            while ((zipEntry = zis.getNextEntry()) != null) {
+                File newFile = new File(outputDirectory, zipEntry.getName());
+                if(zipEntry.isDirectory()) {
+                    newFile.mkdirs();
+                } else {
+                    new File(newFile.getParent()).mkdirs();
+                    try(FileOutputStream fos = new FileOutputStream(newFile)) {
+                        byte[] buffer = new byte[1024];
+                        int len;
+                        while ((len = zis.read(buffer)) > 0) {
+                            fos.write(buffer,0,len);
+                        }
+                    }
+                }
+                zis.closeEntry();
+            }
+        }
+        searchDataFolder(outputDirectory);
+    }
+
+    private File searchDataFolder(File dir) {
+        if (dir.isDirectory()){
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.getName().equals("Part.csv")) {
+                        partCsv = file;
+                    } else if (file.getName().equals("Loinc.csv")) {
+                        loincCsv = file;
+                    }
+                    File found = searchDataFolder(file);
+                    if (found != null) {
+                        return found;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
 
     // Read loinc.csv and collect unique values from the eight fields.
     // CSV Columns
@@ -458,8 +512,8 @@ public class LoincTransformationMojo extends AbstractMojo {
     // TODO: Incorporate / attach Pattern
     // TODO: Reference configureSemanticsForConcept in snomed-ct data - place URI in Utility
     private void createStatedDefinitionSemantic(Session session, EntityProxy.Concept concept,
-                                               String component, String property, String timeAspect,
-                                               String system, String scaleType, String methodType) {
+                                                String component, String property, String timeAspect,
+                                                String system, String scaleType, String methodType) {
         try {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(
