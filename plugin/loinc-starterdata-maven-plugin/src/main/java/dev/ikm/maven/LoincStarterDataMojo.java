@@ -3,13 +3,8 @@ package dev.ikm.maven;
 import dev.ikm.tinkar.composer.Composer;
 import dev.ikm.tinkar.composer.Session;
 import dev.ikm.tinkar.composer.assembler.ConceptAssembler;
-import dev.ikm.tinkar.composer.template.Definition;
-import dev.ikm.tinkar.composer.template.FullyQualifiedName;
-import dev.ikm.tinkar.composer.template.Identifier;
-import dev.ikm.tinkar.composer.template.StatedAxiom;
-import dev.ikm.tinkar.composer.template.StatedNavigation;
-import dev.ikm.tinkar.composer.template.Synonym;
-import dev.ikm.tinkar.composer.template.USDialect;
+import dev.ikm.tinkar.composer.assembler.PatternAssembler;
+import dev.ikm.tinkar.composer.template.*;
 import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.State;
 import dev.ikm.tinkar.terms.TinkarTerm;
@@ -22,6 +17,7 @@ import dev.ikm.tinkar.common.service.CachingService;
 import dev.ikm.tinkar.common.service.PrimitiveData;
 import dev.ikm.tinkar.common.service.ServiceKeys;
 import dev.ikm.tinkar.common.service.ServiceProperties;
+import dev.ikm.tinkar.common.util.uuid.UuidT5Generator;
 
 import java.io.File;
 import java.util.UUID;
@@ -29,16 +25,10 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static dev.ikm.tinkar.terms.TinkarTerm.CASE_SENSITIVE_EVALUATION;
-import static dev.ikm.tinkar.terms.TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE;
-import static dev.ikm.tinkar.terms.TinkarTerm.ENGLISH_LANGUAGE;
-import static dev.ikm.tinkar.terms.TinkarTerm.IDENTIFIER_SOURCE;
-import static dev.ikm.tinkar.terms.TinkarTerm.MODULE;
-import static dev.ikm.tinkar.terms.TinkarTerm.PHENOMENON;
-import static dev.ikm.tinkar.terms.TinkarTerm.PREFERRED;
-import static dev.ikm.tinkar.terms.TinkarTerm.STATUS_VALUE;
-import static dev.ikm.tinkar.terms.TinkarTerm.UNIVERSALLY_UNIQUE_IDENTIFIER;
-import static dev.ikm.tinkar.terms.TinkarTerm.USER;
+import javax.swing.text.html.parser.Entity;
+
+import static dev.ikm.tinkar.terms.TinkarTerm.*;
+import static dev.ikm.tinkar.terms.TinkarTerm.COMPONENT_ID_SET_FIELD;
 
 @Mojo(name = "run-loinc-starterdata", defaultPhase = LifecyclePhase.INSTALL)
 public class LoincStarterDataMojo extends AbstractMojo {
@@ -55,7 +45,18 @@ public class LoincStarterDataMojo extends AbstractMojo {
     @Parameter(property = "controllerName", defaultValue = "Open SpinedArrayStore")
     private String controllerName;
 
+    private UUID namespace;
+
+    public static final String LOINC_TRIAL_STATUS_PATTERN = "LOINC Trial Status Pattern";
+    public static final String LOINC_DISCOURAGED_STATUS_PATTERN = "LOINC Discouraged Status Pattern";
+    public static final String LOINC_CLASS_PATTERN = "LOINC Class Pattern";
+    public static final String EXAMPLE_UCUM_UNITS_PATTERN = "Example UCUM Units Pattern";
+    public static final String TEST_REPORTABLE_MEMBERSHIP_PATTERN = "Test Reportable Membership Pattern";
+    public static final String TEST_SUBSET_MEMBERSHIP_PATTERN = "Test Subset Membership Pattern";
+    public static final String TEST_ORDERABLE_PATTERN = "Test Orderable Pattern";
+
     public void execute() throws MojoExecutionException {
+        this.namespace = UUID.fromString(namespaceString);
         try {
             init();
             transform();
@@ -89,6 +90,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
 
         Session session = composer.open(State.ACTIVE, STAMP_TIME, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
         createConcepts(session);
+        createPatterns(session);
 
         composer.commitAllSessions();
     }
@@ -195,10 +197,19 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept loincModule = makeConceptProxy(loincModuleStr);
         createConcept(session, loincModuleStr, "LOINC Core Module", "Module responsible for LOINC",
                 loincModule, MODULE);
+
+        String exampleUnitsStr = "Example Units (UCUM)";
+        EntityProxy.Concept exampleUnits = makeConceptProxy(exampleUnitsStr);
+        createConcept(session, exampleUnitsStr, "The Unified Code for Units of Measure (UCUM) is a code system intended to include all units of measures being contemporarily used in international science, engineering, and business. (www.unitsofmeasure.org) This field contains example units of measures for this term expressed as UCUM units.",
+                exampleUnits, PHENOMENON);
     }
 
     private EntityProxy.Concept makeConceptProxy(String description) {
-        return EntityProxy.Concept.make(description, UUID.nameUUIDFromBytes(description.getBytes()));
+        return EntityProxy.Concept.make(description, UuidT5Generator.get(namespace, description));
+    }
+
+    private EntityProxy.Pattern makePatternProxy(String description) {
+        return EntityProxy.Pattern.make(description, UuidT5Generator.get(namespace, description));
     }
 
     private void createConcept(Session session, String fullyQualifiedName, String definition,
@@ -241,6 +252,66 @@ public class LoincStarterDataMojo extends AbstractMojo {
                     }
                 }
         );
+    }
+
+    private void createPatterns(Session session) {
+
+        String trialStatusStr = "Trial Status";
+        EntityProxy.Concept trialStatus = makeConceptProxy(trialStatusStr);
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(LOINC_TRIAL_STATUS_PATTERN))
+                        .meaning(trialStatus)
+                        .purpose(STATUS_VALUE));
+
+        String discouragedStatusStr = "Discouraged Status";
+        EntityProxy.Concept discouragedStatus = makeConceptProxy(discouragedStatusStr);
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(LOINC_DISCOURAGED_STATUS_PATTERN))
+                .meaning(discouragedStatus)
+                .purpose(STATUS_VALUE));
+
+        String loincClassStr = "LOINC Class";
+        EntityProxy.Concept loincClass = makeConceptProxy(loincClassStr);
+        String loincClassTypeStr = "LOINC ClassType";
+        EntityProxy.Concept loincClassType = makeConceptProxy(loincClassTypeStr);
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(LOINC_CLASS_PATTERN))
+                        .meaning(loincClass)
+                        .purpose(loincClass)
+                        .fieldDefinition(
+                                loincClass,
+                                loincClass,
+                                COMPONENT_FIELD)
+                        .fieldDefinition(
+                                loincClassType,
+                                loincClassType,
+                                COMPONENT_FIELD));
+
+        String exampleUnitsStr = "Example Units (UCUM)";
+        EntityProxy.Concept exampleUnits = makeConceptProxy(exampleUnitsStr);
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(EXAMPLE_UCUM_UNITS_PATTERN))
+                .meaning(exampleUnits)
+                .purpose(exampleUnits)
+                .fieldDefinition(
+                        exampleUnits,
+                        exampleUnits,
+                        STRING));
+
+        String orderableStr = "Test Orderable";
+        EntityProxy.Concept orderable = makeConceptProxy(orderableStr);
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(EXAMPLE_UCUM_UNITS_PATTERN))
+                .meaning(orderable)
+                .purpose(MEMBERSHIP_SEMANTIC));
+
+        String reportableStr = "Test Reportable";
+        EntityProxy.Concept reportable = makeConceptProxy(reportableStr);
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(EXAMPLE_UCUM_UNITS_PATTERN))
+                .meaning(reportable)
+                .purpose(MEMBERSHIP_SEMANTIC));
+
+        String testSubsetStr = "Test Subset";
+        EntityProxy.Concept testSubset = makeConceptProxy(testSubsetStr);
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(EXAMPLE_UCUM_UNITS_PATTERN))
+                .meaning(testSubset)
+                .purpose(MEMBERSHIP_SEMANTIC));
+
     }
 
     private USDialect usDialect() {
