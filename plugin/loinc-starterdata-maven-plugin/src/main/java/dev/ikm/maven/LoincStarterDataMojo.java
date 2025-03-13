@@ -4,7 +4,14 @@ import dev.ikm.tinkar.composer.Composer;
 import dev.ikm.tinkar.composer.Session;
 import dev.ikm.tinkar.composer.assembler.ConceptAssembler;
 import dev.ikm.tinkar.composer.assembler.PatternAssembler;
-import dev.ikm.tinkar.composer.template.*;
+import dev.ikm.tinkar.composer.template.FullyQualifiedName;
+import dev.ikm.tinkar.composer.template.Identifier;
+import dev.ikm.tinkar.composer.template.StatedNavigation;
+import dev.ikm.tinkar.composer.template.USDialect;
+import dev.ikm.tinkar.composer.template.Definition;
+import dev.ikm.tinkar.composer.template.StatedAxiom;
+import dev.ikm.tinkar.composer.template.Synonym;
+
 import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.State;
 import dev.ikm.tinkar.terms.TinkarTerm;
@@ -27,8 +34,19 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.text.html.parser.Entity;
 
-import static dev.ikm.tinkar.terms.TinkarTerm.*;
-import static dev.ikm.tinkar.terms.TinkarTerm.COMPONENT_ID_SET_FIELD;
+import static dev.ikm.tinkar.terms.TinkarTerm.PHENOMENON;
+import static dev.ikm.tinkar.terms.TinkarTerm.USER;
+import static dev.ikm.tinkar.terms.TinkarTerm.IDENTIFIER_SOURCE;
+import static dev.ikm.tinkar.terms.TinkarTerm.STATUS_VALUE;
+import static dev.ikm.tinkar.terms.TinkarTerm.MODULE;
+import static dev.ikm.tinkar.terms.TinkarTerm.COMPONENT_FIELD;
+import static dev.ikm.tinkar.terms.TinkarTerm.ENGLISH_LANGUAGE;
+import static dev.ikm.tinkar.terms.TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE;
+import static dev.ikm.tinkar.terms.TinkarTerm.MEMBERSHIP_SEMANTIC;
+import static dev.ikm.tinkar.terms.TinkarTerm.STRING;
+import static dev.ikm.tinkar.terms.TinkarTerm.PREFERRED;
+import static dev.ikm.tinkar.terms.TinkarTerm.CASE_SENSITIVE_EVALUATION;
+import static dev.ikm.tinkar.terms.TinkarTerm.UNIVERSALLY_UNIQUE_IDENTIFIER;
 
 @Mojo(name = "run-loinc-starterdata", defaultPhase = LifecyclePhase.INSTALL)
 public class LoincStarterDataMojo extends AbstractMojo {
