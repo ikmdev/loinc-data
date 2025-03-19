@@ -1,5 +1,6 @@
 package dev.ikm.maven;
 
+import dev.ikm.tinkar.common.id.PublicIds;
 import dev.ikm.tinkar.common.util.uuid.UuidT5Generator;
 import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.TinkarTerm;
@@ -59,6 +60,10 @@ public class LoincUtility {
         return EntityProxy.Pattern.make(description, UuidT5Generator.get(namespace, description));
     }
 
+    private static EntityProxy.Concept makeConceptProxy(UUID namespace, String description) {
+        return EntityProxy.Concept.make(description, UuidT5Generator.get(namespace, description));
+    }
+
     public static EntityProxy.Concept getModuleConcept(UUID namespace){
         return TinkarTerm.LOINC_MODULES;
     }
@@ -66,4 +71,66 @@ public class LoincUtility {
     public static EntityProxy.Concept getPathConcept(UUID namespace){
         return TinkarTerm.MASTER_PATH;
     }
+
+    public static String buildOwlExpression(UUID namespace, String component, String property,
+                                     String timeAspect, String system,
+                                     String scaleType, String methodType) {
+        String obsEntityStr = "Observable Entity";
+        EntityProxy.Concept observableEntityConcept = makeConceptProxy(namespace, obsEntityStr);
+
+        String componentStr = "Component";
+        EntityProxy.Concept componentConcept = makeConceptProxy(namespace, componentStr);
+
+        String owlExpression =
+                "EquivalentClasses(\n" +
+                        "    :LOINC_NUM column\n" +
+                        "    ObjectIntersectionOf(\n" +
+                        "        :"+  observableEntityConcept.publicId().asUuidArray()[0] + "\n" +
+                        "        ObjectSomeValuesFrom(\n" +
+                        "            :609096000 |Role group (attribute)|\n" +
+                        "            ObjectSomeValuesFrom(\n" +
+                        "                :" + componentConcept.publicId().asUuidArray()[0]+ "\n" +
+                        "                :" + component + " Column's Value\n" +
+                        "            )\n" +
+                        "        )\n" +
+                        "        ObjectSomeValuesFrom(\n" +
+                        "            :609096000 |Role group (attribute)|\n" +
+                        "            ObjectSomeValuesFrom(\n" +
+                        "                [" + property + "] Starter Data Concept\n" +
+                        "                :" + property + " Column's Value\n" +
+                        "            )\n" +
+                        "        )\n" +
+                        "        ObjectSomeValuesFrom(\n" +
+                        "            :609096000 |Role group (attribute)|\n" +
+                        "            ObjectSomeValuesFrom(\n" +
+                        "                [" + timeAspect + "] Starter Data Concept\n" +
+                        "                :" + timeAspect + " Column's Value\n" +
+                        "            )\n" +
+                        "        )\n" +
+                        "        ObjectSomeValuesFrom(\n" +
+                        "            :609096000 |Role group (attribute)|\n" +
+                        "            ObjectSomeValuesFrom(\n" +
+                        "                [" + system + "] Starter Data Concept\n" +
+                        "                :" + system + " Column's Value\n" +
+                        "            )\n" +
+                        "        )\n" +
+                        "        ObjectSomeValuesFrom(\n" +
+                        "            :609096000 |Role group (attribute)|\n" +
+                        "            ObjectSomeValuesFrom(\n" +
+                        "                [" + scaleType + "] Starter Data Concept\n" +
+                        "                :" + scaleType + " Column's Value\n" +
+                        "            )\n" +
+                        "        )\n" +
+                        "        ObjectSomeValuesFrom(\n" +
+                        "            :609096000 |Role group (attribute)|\n" +
+                        "            ObjectSomeValuesFrom(\n" +
+                        "                [" + methodType + "] Starter Data Concept\n" +
+                        "                :" + methodType + " Column's Value\n" +
+                        "            )\n" +
+                        "        )\n" +
+                        "    )\n" +
+                        ")";
+        return owlExpression;
+    }
+
 }

@@ -527,6 +527,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                                                 String component, String property, String timeAspect,
                                                 String system, String scaleType, String methodType) {
 
+        String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression()
         EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component)));
         try {
             session.compose(new AxiomSyntax()
