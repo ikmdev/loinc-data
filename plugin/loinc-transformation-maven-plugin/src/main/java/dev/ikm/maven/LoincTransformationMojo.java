@@ -445,7 +445,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                     removeQuotes(columns[0])   // LOINC_NUM
             );
 
-            createAxiomSemantics(session, concept,
+            createAxiomSemanticsLoincConcept(session, concept,
                     removeQuotes(columns[1]), // COMPONENT
                     removeQuotes(columns[2]), // PROPERTY
                     removeQuotes(columns[3]), // TIME_ASPCT
@@ -523,11 +523,11 @@ public class LoincTransformationMojo extends AbstractMojo {
      * and includes role group fields for COMPONENT, PROPERTY, TIME_ASPCT, SYSTEM, SCALE_TYP, and METHOD_TYP.
      */
     // TODO: Reference configureSemanticsForConcept in snomed-ct data - place URI in Utility
-    private void createAxiomSemantics(Session session, EntityProxy.Concept concept,
+    private void createAxiomSemanticsLoincConcept(Session session, EntityProxy.Concept concept,
                                                 String component, String property, String timeAspect,
                                                 String system, String scaleType, String methodType) {
 
-        String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression()
+        String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression(namespace,component,property, timeAspect,system,scaleType,methodType);
         EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component)));
         try {
             session.compose(new AxiomSyntax()

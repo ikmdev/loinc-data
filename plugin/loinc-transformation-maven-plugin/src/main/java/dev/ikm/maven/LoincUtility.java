@@ -81,51 +81,66 @@ public class LoincUtility {
         String componentStr = "Component";
         EntityProxy.Concept componentConcept = makeConceptProxy(namespace, componentStr);
 
+        String propertyStr = "Property";
+        EntityProxy.Concept propertyConcept = makeConceptProxy(namespace, propertyStr);
+
+        String timeAspectStr = "Time Aspect";
+        EntityProxy.Concept timeAspectConcept = makeConceptProxy(namespace, timeAspectStr);
+
+        String systemStr = "System";
+        EntityProxy.Concept systemConcept = makeConceptProxy(namespace, systemStr);
+
+        String scaleStr = "Scale";
+        EntityProxy.Concept scaleConcept = makeConceptProxy(namespace, scaleStr);
+
+        String methodStr = "Method";
+        EntityProxy.Concept methodConcept = makeConceptProxy(namespace, methodStr);
+
         String owlExpression =
                 "EquivalentClasses(\n" +
                         "    :LOINC_NUM column\n" +
                         "    ObjectIntersectionOf(\n" +
                         "        :"+  observableEntityConcept.publicId().asUuidArray()[0] + "\n" +
                         "        ObjectSomeValuesFrom(\n" +
-                        "            :609096000 |Role group (attribute)|\n" +
+                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
                         "            ObjectSomeValuesFrom(\n" +
                         "                :" + componentConcept.publicId().asUuidArray()[0]+ "\n" +
-                        "                :" + component + " Column's Value\n" +
+                        "                :" + component + "\n" +
                         "            )\n" +
                         "        )\n" +
                         "        ObjectSomeValuesFrom(\n" +
-                        "            :609096000 |Role group (attribute)|\n" +
+                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
                         "            ObjectSomeValuesFrom(\n" +
-                        "                [" + property + "] Starter Data Concept\n" +
-                        "                :" + property + " Column's Value\n" +
+                        "                :" + propertyConcept.publicId().asUuidArray()[0] + "\n" +
+                        "                :" + property + "\n" +
                         "            )\n" +
                         "        )\n" +
                         "        ObjectSomeValuesFrom(\n" +
-                        "            :609096000 |Role group (attribute)|\n" +
+                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
                         "            ObjectSomeValuesFrom(\n" +
-                        "                [" + timeAspect + "] Starter Data Concept\n" +
-                        "                :" + timeAspect + " Column's Value\n" +
+                        "                :" + timeAspectConcept.publicId().asUuidArray()[0] + "\n" +
+                        "                :" + timeAspect + "\n" +
                         "            )\n" +
                         "        )\n" +
                         "        ObjectSomeValuesFrom(\n" +
-                        "            :609096000 |Role group (attribute)|\n" +
+                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
                         "            ObjectSomeValuesFrom(\n" +
-                        "                [" + system + "] Starter Data Concept\n" +
-                        "                :" + system + " Column's Value\n" +
+                        "                :" + systemConcept.publicId().asUuidArray()[0] + "\n" +
+                        "                :" + system + "\n" +
                         "            )\n" +
                         "        )\n" +
                         "        ObjectSomeValuesFrom(\n" +
-                        "            :609096000 |Role group (attribute)|\n" +
+                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
                         "            ObjectSomeValuesFrom(\n" +
-                        "                [" + scaleType + "] Starter Data Concept\n" +
-                        "                :" + scaleType + " Column's Value\n" +
+                        "                :" + scaleConcept.publicId().asUuidArray()[0] + "\n" +
+                        "                :" + scaleType + "\n" +
                         "            )\n" +
                         "        )\n" +
                         "        ObjectSomeValuesFrom(\n" +
-                        "            :609096000 |Role group (attribute)|\n" +
+                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
                         "            ObjectSomeValuesFrom(\n" +
-                        "                [" + methodType + "] Starter Data Concept\n" +
-                        "                :" + methodType + " Column's Value\n" +
+                        "                :" + methodConcept.publicId().asUuidArray()[0] + "\n" +
+                        "                :" + methodType + "\n" +
                         "            )\n" +
                         "        )\n" +
                         "    )\n" +
