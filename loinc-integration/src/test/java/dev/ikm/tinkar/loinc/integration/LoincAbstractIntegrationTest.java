@@ -4,7 +4,7 @@ import dev.ikm.tinkar.common.service.CachingService;
 import dev.ikm.tinkar.common.service.PrimitiveData;
 import dev.ikm.tinkar.common.service.ServiceKeys;
 import dev.ikm.tinkar.common.service.ServiceProperties;
-import dev.ikm.tinkar.common.util.uuid.UuidUtil;
+import dev.ikm.tinkar.common.util.uuid.UuidT5Generator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
@@ -22,8 +22,8 @@ import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-public abstract class AbstractIntegrationTest {
-    Logger log = LoggerFactory.getLogger(AbstractIntegrationTest.class);
+public abstract class LoincAbstractIntegrationTest {
+    Logger log = LoggerFactory.getLogger(LoincAbstractIntegrationTest.class);
 
     @AfterAll
     public static void shutdown() {
@@ -82,8 +82,15 @@ public abstract class AbstractIntegrationTest {
              BufferedWriter bw = new BufferedWriter(new FileWriter(errorFile))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.startsWith("id")) continue;
-                if (!assertLine(line.split("\\t"))) {
+                if (line.startsWith("\"LOINC_NUM\"")) continue;
+                String[] columns = (line.split("\",\""));
+                if (columns.length != 40) {
+                    log.warn("Invalid loinc.csv row (number of columns not matching criteria): " + line);
+                    continue;
+                }
+                columns[0] = columns[0].replace("\"", ""); //Removes quotation marks (") from first column
+                columns[39] = columns[39].replace("\"", ""); //Removes quotation marks (") from last column
+                if (!assertLine(columns)) {
                     notFound++;
                     bw.write(line);
                 }
@@ -94,8 +101,8 @@ public abstract class AbstractIntegrationTest {
     }
 
     protected UUID uuid(String id) {
-        return UuidUtil.fromSNOMED(id);
-//        return UuidT5Generator.get(UUID.fromString("3094dbd1-60cf-44a6-92e3-0bb32ca4d3de"), id);
+//        return UuidUtil.fromSNOMED(id);
+        return UuidT5Generator.get(UUID.fromString("3094dbd1-60cf-44a6-92e3-0bb32ca4d3de"), id);
     }
 
     protected abstract boolean assertLine(String[] columns);
