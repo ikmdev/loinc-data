@@ -64,11 +64,11 @@ public class LoincUtility {
         return EntityProxy.Concept.make(description, UuidT5Generator.get(namespace, description));
     }
 
-    public static EntityProxy.Concept getModuleConcept(UUID namespace){
+    public static EntityProxy.Concept getModuleConcept(){
         return TinkarTerm.LOINC_MODULES;
     }
 
-    public static EntityProxy.Concept getPathConcept(UUID namespace){
+    public static EntityProxy.Concept getPathConcept(){
         return TinkarTerm.MASTER_PATH;
     }
 
