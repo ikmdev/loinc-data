@@ -77,23 +77,46 @@ public abstract class LoincAbstractIntegrationTest {
      * @throws IOException
      */
     protected int processFile(String sourceFilePath, String errorFile) throws IOException {
-        int notFound = 0;
+        int notFound = 0, tempIndex = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(sourceFilePath));
              BufferedWriter bw = new BufferedWriter(new FileWriter(errorFile))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.startsWith("\"LOINC_NUM\"")) continue;
                 String[] columns = (line.split("\",\""));
-                if (columns.length != 40) {
-                    log.warn("Invalid loinc.csv row (number of columns not matching criteria): " + line);
-                    continue;
+
+                switch (columns.length) {
+                    case 40:
+                        columns[0] = columns[0].replace("\"", ""); //Removes quotation marks (") from first column
+                        columns[39] = columns[39].replace("\"", ""); //Removes quotation marks (") from last column
+
+                        if (!assertLine(columns)) {
+                            notFound++;
+                            bw.write(line);
+                        }
+                        break;
+                    case 42:
+                        tempIndex = 15; //Index for column EXMPL_ANSWERS with values
+                        columns[tempIndex] = columns[tempIndex] + "," + columns[tempIndex+1] + "," + columns[tempIndex+2]; //Reassign values split by regex ("Negative","Positive","Intermediate")
+                        columns[tempIndex] = columns[tempIndex].substring(1, columns[tempIndex].length() - 1); //Removes first and last quotation marks (") from String
+                        do {
+                            tempIndex++;
+                            columns[tempIndex] = columns[tempIndex+2];
+                        } while (tempIndex < 39); //Loop to reassign the String[] Array size to 40 for assertLine() method
+                        columns[40] = null;
+                        columns[41] = null;
+                        columns[0] = columns[0].replace("\"", ""); //Removes quotation marks (") from first column
+                        columns[39] = columns[39].replace("\"", ""); //Removes quotation marks (") from last column
+
+                        if (!assertLine(columns)) {
+                            notFound++;
+                            bw.write(line);
+                        }
+                        break;
+                    default:
+                        log.warn("Invalid loinc.csv row (# of columns '"+ columns.length +"' not matching criteria): " + line);
                 }
-                columns[0] = columns[0].replace("\"", ""); //Removes quotation marks (") from first column
-                columns[39] = columns[39].replace("\"", ""); //Removes quotation marks (") from last column
-                if (!assertLine(columns)) {
-                    notFound++;
-                    bw.write(line);
-                }
+
             }
         }
         log.info("We found file: " + sourceFilePath);
