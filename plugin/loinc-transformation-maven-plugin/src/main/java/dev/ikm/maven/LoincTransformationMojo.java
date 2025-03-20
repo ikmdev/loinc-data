@@ -11,6 +11,7 @@ import dev.ikm.tinkar.composer.Session;
 import dev.ikm.tinkar.composer.assembler.ConceptAssembler;
 import dev.ikm.tinkar.composer.assembler.SemanticAssembler;
 import dev.ikm.tinkar.composer.template.*;
+import dev.ikm.tinkar.entity.Entity;
 import dev.ikm.tinkar.entity.EntityService;
 
 import dev.ikm.tinkar.terms.EntityProxy;
@@ -235,8 +236,8 @@ public class LoincTransformationMojo extends AbstractMojo {
         State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
 
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace); // Regenstrief Institute, Inc. Author
-        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace); // Loinc Module??
-        EntityProxy.Concept path = LoincUtility.getPathConcept(namespace); // Master Path
+        EntityProxy.Concept module = LoincUtility.getModuleConcept(); // Loinc Module??
+        EntityProxy.Concept path = LoincUtility.getPathConcept(); // Master Path
 
         UUID conceptUuid = UuidT5Generator.get(namespace, partData.getPartNumber());
 
@@ -258,7 +259,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                                 .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
                                 .attach(usDialect()))
                         .attach((Identifier identifier) -> identifier
-                                .source(TinkarTerm.LOINC_COMPONENT)  // loinc num - connecting loinc concept
+                                .source(LOINC_COMPONENT)  // loinc num - connecting loinc concept
                                 .identifier(partData.getPartNumber())) // Column A
                         .attach(new StatedAxiom()
                                 .isA(parent)); // Column B
@@ -272,14 +273,13 @@ public class LoincTransformationMojo extends AbstractMojo {
      * Creates a new LOINC concept based on the LOINC row data.
      * This creates a concept for each row in the LOINC CSV.
      */
-    // TODO: Incorporate / attach Pattern
     private void createLoincRowConcept(Composer composer, String[] columns) {
         String loincNum = removeQuotes(columns[0]);
         String longCommonName = removeQuotes(columns[25]);
         String consumerName = removeQuotes(columns[12]);
         String shortName = removeQuotes(columns[20]);
         String displayName = removeQuotes(columns[39]);
-        String status = removeQuotes(columns[36]); // STATUS column
+        String status = removeQuotes(columns[11]); // STATUS column
 
         State state = State.ACTIVE;
         if ("DEPRECATED".equals(status)) {
@@ -287,8 +287,8 @@ public class LoincTransformationMojo extends AbstractMojo {
         }
 
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
-        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace);
-        EntityProxy.Concept path = LoincUtility.getPathConcept(namespace);
+        EntityProxy.Concept module = LoincUtility.getModuleConcept();
+        EntityProxy.Concept path = LoincUtility.getPathConcept();
 
         UUID conceptUuid = UuidT5Generator.get(namespace, loincNum);
         String identifier = UuidT5Generator.get(namespace, loincNum).toString(); // Using the LOINC_NUM as identifier
@@ -297,6 +297,26 @@ public class LoincTransformationMojo extends AbstractMojo {
 
         try {
             EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(conceptUuid));
+            EntityProxy.Semantic semantic;
+
+            if ("TRIAL".equals(status)) {
+                EntityProxy.Pattern pattern = LoincUtility.getLoincTrialStatusPattern(namespace);
+                semantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept + loincNum + status)));
+                session.compose((SemanticAssembler assembler) -> {
+                    assembler.semantic(semantic)
+                            .pattern(pattern)
+                            .reference(concept);
+                });
+
+            } else if ("DISCOURAGED".equals(status)) {
+                EntityProxy.Pattern pattern = LoincUtility.getLoincDiscouragedPattern(namespace);
+                semantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept + loincNum + status)));
+                session.compose((SemanticAssembler assembler) -> {
+                    assembler.semantic(semantic)
+                            .pattern(pattern)
+                            .reference(concept);
+                });
+            }
 
             session.compose((ConceptAssembler assembler) -> {
                 // Create the concept with FQN and synonyms
@@ -332,17 +352,8 @@ public class LoincTransformationMojo extends AbstractMojo {
                 }
 
                 assembler.attach((Identifier identifierObj) -> identifierObj
-                        .source(TinkarTerm.UNIVERSALLY_UNIQUE_IDENTIFIER)
+                        .source(UNIVERSALLY_UNIQUE_IDENTIFIER)
                         .identifier(identifier));
-
-                // Add status pattern semantics if needed
-                if ("TRIAL".equals(status)) {
-                    // TODO: Add LOINC TRIAL STATUS Pattern Semantic
-                    // Implement when pattern is defined
-                } else if ("DISCOURAGED".equals(status)) {
-                    // TODO: Add LOINC DISCOURAGED STATUS Pattern Semantic
-                    // Implement implemented when pattern is defined
-                }
             });
         } catch (Exception e) {
             LOG.error("Error creating concept for LOINC: " + loincNum, e);
@@ -413,8 +424,8 @@ public class LoincTransformationMojo extends AbstractMojo {
         State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
         long time = System.currentTimeMillis();
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
-        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace);
-        EntityProxy.Concept path = LoincUtility.getPathConcept(namespace);
+        EntityProxy.Concept module = LoincUtility.getModuleConcept();
+        EntityProxy.Concept path = LoincUtility.getPathConcept();
         Session session = composer.open(state, time, author, module, path);
 
         try {
@@ -434,7 +445,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                     removeQuotes(columns[0])   // LOINC_NUM
             );
 
-            createStatedDefinitionSemantic(session, concept,
+            createAxiomSemanticsLoincConcept(session, concept,
                     removeQuotes(columns[1]), // COMPONENT
                     removeQuotes(columns[2]), // PROPERTY
                     removeQuotes(columns[3]), // TIME_ASPCT
@@ -448,9 +459,11 @@ public class LoincTransformationMojo extends AbstractMojo {
                     removeQuotes(columns[13])  // CLASSTYPE
             );
 
-            createExampleUcumUnitsSemantic(session, concept,
-                    removeQuotes(columns[24])  // EXAMPLE_UNITS
-            );
+            if(!removeQuotes(columns[24]).isEmpty()) {
+                createExampleUcumUnitsSemantic(session, concept,
+                        removeQuotes(columns[24])  // EXAMPLE_UNITS
+                );
+            }
 
             createTestMembershipSemantic(session, concept,
                     removeQuotes(columns[21])  // ORDER_OBS
@@ -472,7 +485,7 @@ public class LoincTransformationMojo extends AbstractMojo {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(
                                 PublicIds.of(UuidT5Generator.get(namespace,concept.toString() + longCommonName))))
-                        .pattern(TinkarTerm.DESCRIPTION_PATTERN)
+                        .pattern(DESCRIPTION_PATTERN)
                         .reference(concept)
                         .fieldValues(fv -> fv
                                 .with(longCommonName)
@@ -496,7 +509,7 @@ public class LoincTransformationMojo extends AbstractMojo {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(
                                 PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + loincNum))))
-                        .pattern(TinkarTerm.IDENTIFIER_PATTERN)
+                        .pattern(IDENTIFIER_PATTERN)
                         .reference(concept)
                         .fieldValues(fv -> fv.with(loincNum));
             });
@@ -509,25 +522,18 @@ public class LoincTransformationMojo extends AbstractMojo {
      * Creates a stated definition semantic that attaches an [IS A] relationship to [Observable Entity]
      * and includes role group fields for COMPONENT, PROPERTY, TIME_ASPCT, SYSTEM, SCALE_TYP, and METHOD_TYP.
      */
-    // TODO: Incorporate / attach Pattern
     // TODO: Reference configureSemanticsForConcept in snomed-ct data - place URI in Utility
-    private void createStatedDefinitionSemantic(Session session, EntityProxy.Concept concept,
+    private void createAxiomSemanticsLoincConcept(Session session, EntityProxy.Concept concept,
                                                 String component, String property, String timeAspect,
                                                 String system, String scaleType, String methodType) {
+
+        String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression(namespace, component,property, timeAspect,system,scaleType,methodType);
+        EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component)));
         try {
-            session.compose((SemanticAssembler assembler) -> {
-                assembler.semantic(EntityProxy.Semantic.make(
-                                PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component))))
-                        .reference(concept)
-                        .fieldValues(fv -> fv
-                                .with(component)
-                                .with(property)
-                                .with(timeAspect)
-                                .with(system)
-                                .with(scaleType)
-                                .with(methodType)
-                        );
-            });
+            session.compose(new AxiomSyntax()
+                            .semantic(axiomSemantic)
+                            .text(owlExpressionWithPublicIds),
+                    concept);
         } catch (Exception e) {
             LOG.error("Error creating state definition semantic for concept: " + concept, e);
         }
@@ -536,13 +542,14 @@ public class LoincTransformationMojo extends AbstractMojo {
     /**
      * Creates a LOINC class semantic that attaches CLASS and CLASSTYPE.
      */
-    // TODO: Incorporate / attach Pattern
     private void createLoincClassSemantic(Session session, EntityProxy.Concept concept,
                                           String loincClass, String loincClassType) {
+        EntityProxy.Pattern loinClassPattern = LoincUtility.getLoincClassPattern(namespace);
         try {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + loincClass))))
                         .reference(concept)
+                        .pattern(loinClassPattern)
                         .fieldValues(fv -> fv
                                 .with(loincClass)
                                 .with(loincClassType)
@@ -556,12 +563,13 @@ public class LoincTransformationMojo extends AbstractMojo {
     /**
      * Creates an Example UCUM Units semantic using the EXAMPLE_UNITS string.
      */
-    // TODO: Incorporate / attach UCUM Pattern
     private void createExampleUcumUnitsSemantic(Session session, EntityProxy.Concept concept, String exampleUnits) {
+        EntityProxy.Pattern exampleUnitsPattern = LoincUtility.getExampleUnitsPattern(namespace);
         try {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace,concept.toString() + exampleUnits))))
                         .reference(concept)
+                        .pattern(exampleUnitsPattern)
                         .fieldValues(fv -> fv.with(exampleUnits));
             });
         } catch (Exception e) {
@@ -576,27 +584,33 @@ public class LoincTransformationMojo extends AbstractMojo {
      * "Both" -> both patterns,
      * "Subset" -> Test Subset Pattern.
      */
-//TODO: incorporate pattern based on orderObs String, fix semantic and field values
     private void createTestMembershipSemantic(Session session, EntityProxy.Concept concept, String orderObs) {
+        EntityProxy.Pattern pattern;
+        EntityProxy.Pattern pattern2 = null;
         if ("Order".equalsIgnoreCase(orderObs)) {
-
+            pattern = LoincUtility.getTestOrderablePattern(namespace);
         } else if ("Observed".equalsIgnoreCase(orderObs)) {
-
+            pattern = LoincUtility.getTestReportablePattern(namespace);
+        }  else if ("Subset".equalsIgnoreCase(orderObs)) {
+            pattern = LoincUtility.getTestSubsetPattern(namespace);
         } else if ("Both".equalsIgnoreCase(orderObs)) {
-
-        } else if ("Subset".equalsIgnoreCase(orderObs)) {
-
+            pattern = LoincUtility.getTestOrderablePattern(namespace);
+            pattern2 = LoincUtility.getTestReportablePattern(namespace);
+        } else {
+            pattern = null;
         }
 
         try {
+            EntityProxy.Pattern finalPattern = pattern2;
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + orderObs))))
-//                        .pattern()
-                        .reference(concept)
-                        .fieldValues(fv -> {
-
-                        });
+                        .pattern(pattern)
+                        .reference(concept);
+                if (finalPattern != null){
+                    assembler.pattern(finalPattern);
+                }
             });
+
         } catch (Exception e) {
             LOG.error("Error creating test membership semantic for concept: " + concept, e);
         }
@@ -618,6 +632,10 @@ public class LoincTransformationMojo extends AbstractMojo {
     }
     private USDialect usDialect() {
         return new USDialect().acceptability(PREFERRED);
+    }
+
+    private EntityProxy.Pattern makePatternProxy(String description) {
+        return EntityProxy.Pattern.make(description, UuidT5Generator.get(namespace, description));
     }
 
     private static class PartData {

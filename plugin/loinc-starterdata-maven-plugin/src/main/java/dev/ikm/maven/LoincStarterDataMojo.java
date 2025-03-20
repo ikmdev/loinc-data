@@ -71,7 +71,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
     public static final String EXAMPLE_UCUM_UNITS_PATTERN = "Example UCUM Units Pattern";
     public static final String TEST_REPORTABLE_MEMBERSHIP_PATTERN = "Test Reportable Membership Pattern";
     public static final String TEST_SUBSET_MEMBERSHIP_PATTERN = "Test Subset Membership Pattern";
-    public static final String TEST_ORDERABLE_PATTERN = "Test Orderable Pattern";
+    public static final String TEST_ORDERABLE_MEMBERSHIP_PATTERN = "Test Orderable Membership Pattern";
 
     public void execute() throws MojoExecutionException {
         this.namespace = UUID.fromString(namespaceString);
@@ -314,19 +314,19 @@ public class LoincStarterDataMojo extends AbstractMojo {
 
         String orderableStr = "Test Orderable";
         EntityProxy.Concept orderable = makeConceptProxy(orderableStr);
-        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(EXAMPLE_UCUM_UNITS_PATTERN))
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_ORDERABLE_MEMBERSHIP_PATTERN))
                 .meaning(orderable)
                 .purpose(MEMBERSHIP_SEMANTIC));
 
         String reportableStr = "Test Reportable";
         EntityProxy.Concept reportable = makeConceptProxy(reportableStr);
-        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(EXAMPLE_UCUM_UNITS_PATTERN))
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_REPORTABLE_MEMBERSHIP_PATTERN))
                 .meaning(reportable)
                 .purpose(MEMBERSHIP_SEMANTIC));
 
         String testSubsetStr = "Test Subset";
         EntityProxy.Concept testSubset = makeConceptProxy(testSubsetStr);
-        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(EXAMPLE_UCUM_UNITS_PATTERN))
+        session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_SUBSET_MEMBERSHIP_PATTERN))
                 .meaning(testSubset)
                 .purpose(MEMBERSHIP_SEMANTIC));
 
