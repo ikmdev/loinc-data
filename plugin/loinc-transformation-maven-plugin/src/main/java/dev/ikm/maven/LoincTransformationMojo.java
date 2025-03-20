@@ -236,8 +236,8 @@ public class LoincTransformationMojo extends AbstractMojo {
         State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
 
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace); // Regenstrief Institute, Inc. Author
-        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace); // Loinc Module??
-        EntityProxy.Concept path = LoincUtility.getPathConcept(namespace); // Master Path
+        EntityProxy.Concept module = LoincUtility.getModuleConcept(); // Loinc Module??
+        EntityProxy.Concept path = LoincUtility.getPathConcept(); // Master Path
 
         UUID conceptUuid = UuidT5Generator.get(namespace, partData.getPartNumber());
 
@@ -287,8 +287,8 @@ public class LoincTransformationMojo extends AbstractMojo {
         }
 
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
-        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace);
-        EntityProxy.Concept path = LoincUtility.getPathConcept(namespace);
+        EntityProxy.Concept module = LoincUtility.getModuleConcept();
+        EntityProxy.Concept path = LoincUtility.getPathConcept();
 
         UUID conceptUuid = UuidT5Generator.get(namespace, loincNum);
         String identifier = UuidT5Generator.get(namespace, loincNum).toString(); // Using the LOINC_NUM as identifier
@@ -424,8 +424,8 @@ public class LoincTransformationMojo extends AbstractMojo {
         State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
         long time = System.currentTimeMillis();
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
-        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace);
-        EntityProxy.Concept path = LoincUtility.getPathConcept(namespace);
+        EntityProxy.Concept module = LoincUtility.getModuleConcept();
+        EntityProxy.Concept path = LoincUtility.getPathConcept();
         Session session = composer.open(state, time, author, module, path);
 
         try {
@@ -527,7 +527,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                                                 String component, String property, String timeAspect,
                                                 String system, String scaleType, String methodType) {
 
-        String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression(namespace,component,property, timeAspect,system,scaleType,methodType);
+        String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression(namespace, component,property, timeAspect,system,scaleType,methodType);
         EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component)));
         try {
             session.compose(new AxiomSyntax()
