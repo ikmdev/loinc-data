@@ -77,9 +77,11 @@ public class LoincUtility {
         return TinkarTerm.MASTER_PATH;
     }
 
-    public static String buildOwlExpression(UUID namespace, String component, String property,
+    public static String buildOwlExpression(UUID namespace, String loincNum, String component, String property,
                                      String timeAspect, String system,
                                      String scaleType, String methodType) {
+        EntityProxy.Concept loinNumConcept = makeConceptProxy(namespace, loincNum);
+
         String obsEntityStr = "Observable Entity";
         EntityProxy.Concept observableEntityConcept = makeConceptProxy(namespace, obsEntityStr);
 
@@ -103,7 +105,7 @@ public class LoincUtility {
 
         String owlExpression =
                 "EquivalentClasses(\n" +
-                        "    :LOINC_NUM column\n" +
+                        "    :"+  loinNumConcept.publicId().asUuidArray()[0] +"\n" +
                         "    ObjectIntersectionOf(\n" +
                         "        :"+  observableEntityConcept.publicId().asUuidArray()[0] + "\n" +
                         "        ObjectSomeValuesFrom(\n" +

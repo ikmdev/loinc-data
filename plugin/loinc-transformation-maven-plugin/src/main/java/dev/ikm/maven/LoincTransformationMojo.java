@@ -10,7 +10,12 @@ import dev.ikm.tinkar.composer.Composer;
 import dev.ikm.tinkar.composer.Session;
 import dev.ikm.tinkar.composer.assembler.ConceptAssembler;
 import dev.ikm.tinkar.composer.assembler.SemanticAssembler;
-import dev.ikm.tinkar.composer.template.*;
+import dev.ikm.tinkar.composer.template.FullyQualifiedName;
+import dev.ikm.tinkar.composer.template.Synonym;
+import dev.ikm.tinkar.composer.template.Identifier;
+import dev.ikm.tinkar.composer.template.AxiomSyntax;
+import dev.ikm.tinkar.composer.template.USDialect;
+import dev.ikm.tinkar.composer.template.StatedAxiom;
 import dev.ikm.tinkar.entity.Entity;
 import dev.ikm.tinkar.entity.EntityService;
 
@@ -266,6 +271,16 @@ public class LoincTransformationMojo extends AbstractMojo {
                         .attach(new StatedAxiom()
                                 .isA(parent)); // Column B
             });
+
+            // Create the two Description Semantics
+            createDescriptionSemantic(session, concept, partData.getPartDisplayName(), FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE);
+            createDescriptionSemantic(session, concept, partData.getPartName(), REGULAR_NAME_DESCRIPTION_TYPE);
+
+            // Create the Identifier Semantic
+            createIdentifierSemantic(session, concept, partData.getPartNumber());
+
+            // Create the Axiom Semantic for Part Concepts
+            createAxiomSemanticForPartConcept(session, concept, partData.getPartTypeName());
         } catch (Exception e) {
             LOG.error("Error creating concept for part: " + partData.getPartTypeName(), e);
         }
@@ -280,7 +295,9 @@ public class LoincTransformationMojo extends AbstractMojo {
         String longCommonName = removeQuotes(columns[25]);
         String consumerName = removeQuotes(columns[12]);
         String shortName = removeQuotes(columns[20]);
+        String relatedNames2 = removeQuotes(columns[19]);
         String displayName = removeQuotes(columns[39]);
+        String definitionDescription = removeQuotes(columns[10]);
         String status = removeQuotes(columns[11]); // STATUS column
 
         State state = State.ACTIVE;
@@ -357,6 +374,59 @@ public class LoincTransformationMojo extends AbstractMojo {
                         .source(UNIVERSALLY_UNIQUE_IDENTIFIER)
                         .identifier(identifier));
             });
+
+            // Create description semantics for non-empty fields
+            if (!longCommonName.isEmpty()) {
+                createDescriptionSemantic(session, concept, longCommonName, FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE);
+            }
+
+            if (!consumerName.isEmpty()) {
+                createDescriptionSemantic(session, concept, consumerName, REGULAR_NAME_DESCRIPTION_TYPE);
+            }
+
+            if (!shortName.isEmpty()) {
+                createDescriptionSemantic(session, concept, shortName, REGULAR_NAME_DESCRIPTION_TYPE);
+            }
+
+            if (!relatedNames2.isEmpty()) {
+                createDescriptionSemantic(session, concept, relatedNames2, REGULAR_NAME_DESCRIPTION_TYPE);
+            }
+
+            if (!displayName.isEmpty()) {
+                createDescriptionSemantic(session, concept, displayName, REGULAR_NAME_DESCRIPTION_TYPE);
+            }
+
+            if (!definitionDescription.isEmpty()) {
+                createDescriptionSemantic(session, concept, definitionDescription, DEFINITION_DESCRIPTION_TYPE);
+            }
+
+            // Create identifier semantic
+            createIdentifierSemantic(session, concept, loincNum);
+
+            // Create axiom semantic using the existing method
+            createAxiomSemanticsLoincConcept(session, concept,
+                    loincNum,                   // LOINC_NUM
+                    removeQuotes(columns[1]),   // COMPONENT
+                    removeQuotes(columns[2]),   // PROPERTY
+                    removeQuotes(columns[3]),   // TIME_ASPCT
+                    removeQuotes(columns[4]),   // SYSTEM
+                    removeQuotes(columns[5]),   // SCALE_TYP
+                    removeQuotes(columns[6]));   // METHOD_TYP
+
+            // Create Loinc Class semantic
+            createLoincClassSemantic(session, concept,
+                    removeQuotes(columns[7]),   // CLASS
+                    removeQuotes(columns[13])); // CLASSTYPE
+
+            // Create Example UCUM Units semantic if not empty
+            if (!removeQuotes(columns[24]).isEmpty()) {
+                createExampleUcumUnitsSemantic(session, concept,
+                        removeQuotes(columns[24]));  // EXAMPLE_UNITS
+            }
+
+            // Create Test Membership semantic
+            createTestMembershipSemantic(session, concept,
+                    removeQuotes(columns[21]));  // ORDER_OBS
         } catch (Exception e) {
             LOG.error("Error creating concept for LOINC: " + loincNum, e);
         }
@@ -392,9 +462,6 @@ public class LoincTransformationMojo extends AbstractMojo {
             CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                 // Create a LOINC row concept
                 createLoincRowConcept(composer, columns);
-
-                // Process part-related semantics
-                processLoincRowForSemantics(composer, columns, partMap);
             }, executorService);
 
             futures.add(future);
@@ -404,119 +471,66 @@ public class LoincTransformationMojo extends AbstractMojo {
     }
 
     /**
-     * Process a single LOINC row for semantic creation
+     * Creates a description semantic with the specified description type.
+     *
+     * @param session The current session
+     * @param concept The concept to attach the description to
+     * @param description The description text
+     * @param descriptionType The type of description (FQN, Regular Name, Definition)
      */
-    private void processLoincRowForSemantics(Composer composer, String[] columns, Map<String, PartData> partMap) {
-        // Determine the partData by checking the eight fields in order.
-        String[] candidateIndices = { columns[1], columns[2], columns[3], columns[4],
-                columns[5], columns[6], columns[7], columns[13] };
-        PartData partData = null;
-        for (String candidate : candidateIndices) {
-            partData = partMap.get(removeQuotes(candidate));
-            if (partData != null) {
-                break;
-            }
-        }
-        if (partData == null) {
-            LOG.warn("No matching part found for loinc.csv row with LOINC_NUM: " + removeQuotes(columns[0]));
-            return;
-        }
+    private void createDescriptionSemantic(Session session, EntityProxy.Concept concept, String description,
+                                           EntityProxy.Concept descriptionType) {
+        String typeStr = descriptionType.equals(TinkarTerm.FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE) ? "FQN" :
+                descriptionType.equals(TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE) ? "Regular" : "Definition";
 
-        UUID conceptUuid = UuidT5Generator.get(namespace, partData.getPartNumber());
-        State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
-        long time = System.currentTimeMillis();
-        EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
-        EntityProxy.Concept module = LoincUtility.getModuleConcept();
-        EntityProxy.Concept path = LoincUtility.getPathConcept();
-        Session session = composer.open(state, time, author, module, path);
+        EntityProxy.Semantic semantic = EntityProxy.Semantic.make(
+                PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + description)));
 
         try {
-            EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(conceptUuid));
-
-            // Create the six semantics by calling separate methods.
-            createDescriptionSemantic(session, concept,
-                    removeQuotes(columns[25]), // LONG_COMMON_NAME
-                    removeQuotes(columns[12]), // CONSUMER_NAME
-                    removeQuotes(columns[20]), // SHORTNAME
-                    removeQuotes(columns[19]), // RELATEDNAMES2
-                    removeQuotes(columns[39]), // DISPLAYNAME
-                    removeQuotes(columns[10])  // DEFINITIONDESCRIPTION
-            );
-
-            createIdentifierSemantic(session, concept,
-                    removeQuotes(columns[0])   // LOINC_NUM
-            );
-
-            createAxiomSemanticsLoincConcept(session, concept,
-                    removeQuotes(columns[1]), // COMPONENT
-                    removeQuotes(columns[2]), // PROPERTY
-                    removeQuotes(columns[3]), // TIME_ASPCT
-                    removeQuotes(columns[4]), // SYSTEM
-                    removeQuotes(columns[5]), // SCALE_TYP
-                    removeQuotes(columns[6])  // METHOD_TYP
-            );
-
-            createLoincClassSemantic(session, concept,
-                    removeQuotes(columns[7]),  // CLASS
-                    removeQuotes(columns[13])  // CLASSTYPE
-            );
-
-            if(!removeQuotes(columns[24]).isEmpty()) {
-                createExampleUcumUnitsSemantic(session, concept,
-                        removeQuotes(columns[24])  // EXAMPLE_UNITS
-                );
-            }
-
-            createTestMembershipSemantic(session, concept,
-                    removeQuotes(columns[21])  // ORDER_OBS
-            );
+            session.compose((SemanticAssembler semanticAssembler) -> semanticAssembler
+                    .semantic(semantic)
+                    .pattern(TinkarTerm.DESCRIPTION_PATTERN)
+                    .reference(concept)
+                    .fieldValues(fieldValues -> fieldValues
+                            .with(TinkarTerm.ENGLISH_LANGUAGE)
+                            .with(description)
+                            .with(TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE)
+                            .with(descriptionType)
+                    ));
         } catch (Exception e) {
-            LOG.error("Error creating semantics for LOINC: " + removeQuotes(columns[0]), e);
-        }
-    }
-
-    /**
-     * Creates a description semantic using LONG_COMMON_NAME, CONSUMER_NAME, SHORTNAME, RELATEDNAMES2,
-     * DISPLAYNAME, and DEFINITIONDESCRIPTION.
-     */
-    private void createDescriptionSemantic(Session session, EntityProxy.Concept concept,
-                                           String longCommonName, String consumerName,
-                                           String shortName, String relatedNames2,
-                                           String displayName, String definitionDescription) {
-        try {
-            session.compose((SemanticAssembler assembler) -> {
-                assembler.semantic(EntityProxy.Semantic.make(
-                                PublicIds.of(UuidT5Generator.get(namespace,concept.toString() + longCommonName))))
-                        .pattern(DESCRIPTION_PATTERN)
-                        .reference(concept)
-                        .fieldValues(fv -> fv
-                                .with(longCommonName)
-                                .with(consumerName)
-                                .with(shortName)
-                                .with(relatedNames2)
-                                .with(displayName)
-                                .with(definitionDescription)
-                        );
-            });
-        } catch (Exception e) {
-            LOG.error("Error creating description semantic for concept: " + concept, e);
+            LOG.error("Error creating " + typeStr + " description semantic for concept: " + concept, e);
         }
     }
 
     /**
      * Creates an identifier semantic based on LOINC_NUM.
      */
-    private void createIdentifierSemantic(Session session, EntityProxy.Concept concept, String loincNum) {
+    private void createIdentifierSemantic(Session session, EntityProxy.Concept concept, String identifier) {
+        EntityProxy.Concept identifierSource = LoincUtility.getLoincNumConcept(namespace);
         try {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(
-                                PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + loincNum))))
+                                PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + identifier))))
                         .pattern(IDENTIFIER_PATTERN)
                         .reference(concept)
-                        .fieldValues(fv -> fv.with(loincNum));
+                        .fieldValues(fv -> fv
+                                .with(identifierSource)
+                                .with(identifier));
             });
         } catch (Exception e) {
             LOG.error("Error creating identifier semantic for concept: " + concept, e);
+        }
+    }
+
+    private void createAxiomSemanticForPartConcept(Session session, EntityProxy.Concept concept, String partTypeName) {
+        EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + partTypeName)));
+
+        try {
+            session.compose(new AxiomSyntax()
+                            .semantic(axiomSemantic),
+                    concept);
+        } catch (Exception e) {
+            LOG.error("Error creating state definition semantic for concept: " + concept, e);
         }
     }
 
@@ -524,11 +538,11 @@ public class LoincTransformationMojo extends AbstractMojo {
      * Creates a stated definition semantic that attaches an [IS A] relationship to [Observable Entity]
      * and includes role group fields for COMPONENT, PROPERTY, TIME_ASPCT, SYSTEM, SCALE_TYP, and METHOD_TYP.
      */
-    private void createAxiomSemanticsLoincConcept(Session session, EntityProxy.Concept concept,
+    private void createAxiomSemanticsLoincConcept(Session session, EntityProxy.Concept concept, String loincNum,
                                                 String component, String property, String timeAspect,
                                                 String system, String scaleType, String methodType) {
 
-        String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression(namespace, component,property, timeAspect,system,scaleType,methodType);
+        String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression(namespace, loincNum, component,property, timeAspect,system,scaleType,methodType);
         EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component)));
         try {
             session.compose(new AxiomSyntax()
@@ -633,10 +647,6 @@ public class LoincTransformationMojo extends AbstractMojo {
     }
     private USDialect usDialect() {
         return new USDialect().acceptability(PREFERRED);
-    }
-
-    private EntityProxy.Pattern makePatternProxy(String description) {
-        return EntityProxy.Pattern.make(description, UuidT5Generator.get(namespace, description));
     }
 
     private static class PartData {
