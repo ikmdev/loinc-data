@@ -56,6 +56,11 @@ public class LoincUtility {
         return makePatternProxy(namespace, TEST_ORDERABLE_MEMBERSHIP_PATTERN);
     }
 
+    public static EntityProxy.Concept getLoincNumConcept(UUID namespace) {
+        String loincNumber = "LOINC Number";
+        return makeConceptProxy(namespace, loincNumber);
+    }
+
     private static EntityProxy.Pattern makePatternProxy(UUID namespace, String description) {
         return EntityProxy.Pattern.make(description, UuidT5Generator.get(namespace, description));
     }

@@ -241,6 +241,8 @@ public class LoincTransformationMojo extends AbstractMojo {
 
         UUID conceptUuid = UuidT5Generator.get(namespace, partData.getPartNumber());
 
+        EntityProxy.Concept loincNumConcept = LoincUtility.getLoincNumConcept(namespace);
+
         Session session = composer.open(state, author, module, path);
 
         try {
@@ -259,7 +261,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                                 .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
                                 .attach(usDialect()))
                         .attach((Identifier identifier) -> identifier
-                                .source(LOINC_COMPONENT)  // loinc num - connecting loinc concept
+                                .source(loincNumConcept)  // loinc num - connecting loinc concept
                                 .identifier(partData.getPartNumber())) // Column A
                         .attach(new StatedAxiom()
                                 .isA(parent)); // Column B
@@ -522,7 +524,6 @@ public class LoincTransformationMojo extends AbstractMojo {
      * Creates a stated definition semantic that attaches an [IS A] relationship to [Observable Entity]
      * and includes role group fields for COMPONENT, PROPERTY, TIME_ASPCT, SYSTEM, SCALE_TYP, and METHOD_TYP.
      */
-    // TODO: Reference configureSemanticsForConcept in snomed-ct data - place URI in Utility
     private void createAxiomSemanticsLoincConcept(Session session, EntityProxy.Concept concept,
                                                 String component, String property, String timeAspect,
                                                 String system, String scaleType, String methodType) {
