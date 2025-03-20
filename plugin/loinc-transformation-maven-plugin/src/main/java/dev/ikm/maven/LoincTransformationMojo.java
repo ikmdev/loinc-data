@@ -602,13 +602,12 @@ public class LoincTransformationMojo extends AbstractMojo {
 
         try {
             EntityProxy.Pattern finalPattern = pattern2;
-            EntityProxy.Pattern finalPattern2 = pattern2;
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + orderObs))))
                         .pattern(pattern)
                         .reference(concept);
                 if (finalPattern != null){
-                    assembler.pattern(finalPattern2);
+                    assembler.pattern(finalPattern);
                 }
             });
 
