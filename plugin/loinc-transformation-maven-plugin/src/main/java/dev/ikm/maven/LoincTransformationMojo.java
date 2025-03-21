@@ -87,40 +87,34 @@ public class LoincTransformationMojo extends AbstractMojo {
 
         this.executorService = Executors.newFixedThreadPool(threadCount);
 
-        // Load part.csv into a map keyed by PartTypeName (Column B) , 1
-        Map<String, PartData> partMap = loadPartMap();
-
-        // Read loinc.csv and collect unique values from the eight fields.
-        Set<String> uniqueValues = collectUniqueValuesFromLoinc();
-
+        // Start by initializing the datastore
         initializeDatastore(datastore);
         EntityService.get().beginLoadPhase();
 
         try {
             Composer composer = new Composer("Loinc Transformer Composer");
 
-            // Use CompletableFuture for parallel processing of part concepts
-            List<CompletableFuture<Void>> partConceptFutures = new ArrayList<>();
-            for (String value : uniqueValues) {
-                PartData partData = partMap.get(value);
-                if (partData == null) {
-                    LOG.warn("No matching part found in part.csv for value: " + value);
-                    continue;
-                }
-                LOG.info("**************** CREATING PART CONCEPTS ****************");
-                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                    createLoincPartConcept(partData, composer);
-                }, executorService);
-                partConceptFutures.add(future);
+            // Process part.csv first, then process loinc.csv
+            // This avoids potential concurrent modification issues with the composer
+            try {
+                LOG.info("Starting part.csv processing...");
+                List<PartData> filteredParts = processPartCsvAsync();
+                createPartConceptsAsync(filteredParts, composer);
+                LOG.info("Part.csv processing completed");
+
+                LOG.info("Starting loinc.csv processing...");
+                processLoincRowsAsync(composer);
+                LOG.info("Loinc.csv processing completed");
+            } catch (Exception e) {
+                LOG.error("Error during data processing", e);
             }
-            // Wait for all part concept creation tasks to complete
-            CompletableFuture.allOf(partConceptFutures.toArray(new CompletableFuture[0])).join();
-            // Process LOINC rows for semantics and create LOINC concepts in parallel
-            processLoincRowsMultithreaded(composer, partMap);
+
+            // Commit all sessions after both processes are complete
+            LOG.info("Committing all sessions...");
             composer.commitAllSessions();
+            LOG.info("Sessions committed successfully");
         } finally {
             executorService.shutdown();
-
             EntityService.get().endLoadPhase();
             PrimitiveData.stop();
             LOG.info("########## Loinc Transformation Completed.");
@@ -173,103 +167,185 @@ public class LoincTransformationMojo extends AbstractMojo {
     }
 
 
-    // Read loinc.csv and collect unique values from the eight fields.
-    // CSV Columns
-    // 0: LOINC_NUM, 1: COMPONENT, 2: PROPERTY, 3: TIME_ASPCT, 4: SYSTEM,
-    // 5: SCALE_TYP, 6: METHOD_TYP, 7: CLASS, 13: CLASSTYPE
-    private Map<String, PartData> loadPartMap() throws MojoExecutionException {
-        Map<String, PartData> partMap = new ConcurrentHashMap<>();
-        try(BufferedReader reader = new BufferedReader(new FileReader(partCsv))) {
-            String header = reader.readLine();
+    /**
+     * Process part.csv by filtering for specific part types
+     * Returns a list of filtered PartData objects
+     */
+    private List<PartData> processPartCsvAsync() {
+        LOG.info("Starting part.csv processing asynchronously");
+
+        List<PartData> filteredPartData = Collections.synchronizedList(new ArrayList<>());
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(partCsv))) {
+            String header = reader.readLine(); // Skip header
+
+            // Read all lines and convert to a list for parallel processing
+            List<String> lines = new ArrayList<>();
             String line;
-            while((line = reader.readLine()) != null){
-                String[] columns = splitCsvLine(line);
-                if(columns.length < 5) {
-                    LOG.warn("Invalid line in part.csv " + line);
-                    continue;
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
+            }
+
+            // Process lines in parallel
+            lines.parallelStream().forEach(csvLine -> {
+                String[] columns = splitCsvLine(csvLine);
+                if (columns.length < 5) {
+                    LOG.warn("Invalid line in part.csv " + csvLine);
+                    return;
                 }
+
                 String partNumber = removeQuotes(columns[0]); // A
                 String partTypeName = removeQuotes(columns[1]); // B
                 String partName = removeQuotes(columns[2]); // C
                 String partDisplayName = removeQuotes(columns[3]); // D
                 String status = removeQuotes(columns[4]); // E
 
-                PartData partData = new PartData(partNumber, partTypeName, partName, partDisplayName, status);
-                partMap.put(partTypeName, partData);
-            }
-        } catch (IOException e){
-            throw new MojoExecutionException("Error reading part.csv", e);
-        }
-        return partMap;
-    }
-
-    /**
-     * Collects unique values from the specified columns in loinc.csv
-     */
-    private Set<String> collectUniqueValuesFromLoinc() throws MojoExecutionException {
-        Set<String> uniqueValues = ConcurrentHashMap.newKeySet();
-        Map<String, String> partToLoincMap = new ConcurrentHashMap<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(loincCsv))) {
-            String header = reader.readLine(); // skip header
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] columns = splitCsvLine(line);
-                if (columns.length < 14) {
-                    LOG.warn("Invalid line in loinc.csv: " + line);
-                    continue;
+                // Only process rows with the target part types
+                if (TARGET_PART_TYPES.contains(partTypeName)) {
+                    PartData partData = new PartData(partNumber, partTypeName, partName, partDisplayName, status);
+                    filteredPartData.add(partData);
                 }
-                uniqueValues.add(removeQuotes(columns[1]));  // COMPONENT
-                uniqueValues.add(removeQuotes(columns[2]));  // PROPERTY
-                uniqueValues.add(removeQuotes(columns[3]));  // TIME_ASPCT
-                uniqueValues.add(removeQuotes(columns[4]));  // SYSTEM
-                uniqueValues.add(removeQuotes(columns[5]));  // SCALE_TYP
-                uniqueValues.add(removeQuotes(columns[6]));  // METHOD_TYP
-                uniqueValues.add(removeQuotes(columns[7]));  // CLASS
-                uniqueValues.add(removeQuotes(columns[13])); // CLASSTYPE
-            }
-
+            });
         } catch (IOException e) {
-            throw new MojoExecutionException("Error reading loinc.csv", e);
+            LOG.error("Error reading part.csv", e);
+            return new ArrayList<>();
         }
-        return uniqueValues;
+
+        LOG.info("Filtered " + filteredPartData.size() + " part entries with target part types");
+        return filteredPartData;
+    }
+
+    // List of specific part types to filter for
+    private static final Set<String> TARGET_PART_TYPES = Set.of(
+            "COMPONENT",
+            "PROPERTY",
+            "TIME",
+            "SYSTEM",
+            "SCALE",
+            "METHOD",
+            "CLASS"
+    );
+
+    /**
+     * Create concepts for the filtered part data
+     */
+    private void createPartConceptsAsync(List<PartData> filteredPartData, Composer composer) {
+        LOG.info("**************** CREATING PART CONCEPTS ASYNCHRONOUSLY ****************");
+
+        // Lock object for synchronizing access to the composer
+        final Object composerLock = new Object();
+
+        // Use CompletableFuture for parallel processing of part concepts
+        List<CompletableFuture<Void>> partConceptFutures = new ArrayList<>();
+
+        // Process part data in batches to reduce contention
+        int batchSize = 10;
+        List<List<PartData>> batches = new ArrayList<>();
+
+        for (int i = 0; i < filteredPartData.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, filteredPartData.size());
+            batches.add(new ArrayList<>(filteredPartData.subList(i, end)));
+        }
+
+        LOG.info("Split part data into " + batches.size() + " batches for processing");
+
+        // Process each batch in a separate future
+        for (List<PartData> batch : batches) {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                for (PartData partData : batch) {
+                    // Synchronize access to the composer object
+                    synchronized (composerLock) {
+                        try {
+                            createLoincPartConcept(partData, composer);
+                        } catch (Exception e) {
+                            LOG.error("Error creating part concept for " + partData.getPartTypeName(), e);
+                        }
+                    }
+                }
+            }, executorService);
+            partConceptFutures.add(future);
+        }
+
+        // Wait for all part concept creation tasks to complete
+        try {
+            CompletableFuture.allOf(partConceptFutures.toArray(new CompletableFuture[0])).join();
+            LOG.info("Part concept creation completed");
+        } catch (Exception e) {
+            LOG.error("Error waiting for part concept creation to complete", e);
+        }
     }
 
     /**
-     * Process LOINC rows and create semantics in parallel
+     * Process LOINC rows and create semantics
      */
-    private void processLoincRowsMultithreaded(Composer composer, Map<String, PartData> partMap) {
-        List<String[]> loincRows = new ArrayList<>();
+    private void processLoincRowsAsync(Composer composer) {
+        LOG.info("Starting LOINC.csv processing asynchronously");
 
-        // First, read all rows from the CSV file
+        // Lock object for synchronizing access to the composer
+        final Object composerLock = new Object();
+
         try (BufferedReader reader = new BufferedReader(new FileReader(loincCsv))) {
             String header = reader.readLine(); // skip header
+
+            // Read all lines from LOINC.csv
+            List<String> lines = new ArrayList<>();
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] columns = splitCsvLine(line);
-                if (columns.length < 40) {
-                    LOG.warn("Invalid loinc.csv row (insufficient columns): " + line);
-                    continue;
-                }
-                loincRows.add(columns);
+                lines.add(line);
             }
+
+            LOG.info("Read " + lines.size() + " LOINC rows for processing");
+
+            // Process lines in chunks for better memory management
+            final int CHUNK_SIZE = 100;
+            List<CompletableFuture<Void>> allFutures = new ArrayList<>();
+
+            for (int i = 0; i < lines.size(); i += CHUNK_SIZE) {
+                final int startIndex = i;
+                final int endIndex = Math.min(i + CHUNK_SIZE, lines.size());
+
+                CompletableFuture<Void> chunkFuture = CompletableFuture.runAsync(() -> {
+                    try {
+                        // Process all rows in this chunk sequentially but with synchronized composer access
+                        for (int j = startIndex; j < endIndex; j++) {
+                            final String csvLine = lines.get(j);
+
+                            String[] columns = splitCsvLine(csvLine);
+                            if (columns.length < 40) {
+                                LOG.warn("Invalid loinc.csv row (insufficient columns): " + csvLine);
+                                continue;
+                            }
+
+                            // Synchronize access to the composer object
+                            synchronized (composerLock) {
+                                try {
+                                    createLoincRowConcept(composer, columns);
+                                } catch (Exception e) {
+                                    LOG.error("Error creating LOINC concept for row: " + j, e);
+                                }
+                            }
+                        }
+
+                        LOG.info("Processed LOINC chunk " + startIndex + " to " + endIndex);
+                    } catch (Exception e) {
+                        LOG.error("Error processing LOINC chunk " + startIndex + " to " + endIndex, e);
+                    }
+                }, executorService);
+
+                allFutures.add(chunkFuture);
+            }
+
+            // Wait for all chunk processing to complete
+            try {
+                CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0])).join();
+                LOG.info("LOINC processing completed");
+            } catch (Exception e) {
+                LOG.error("Error waiting for LOINC processing to complete", e);
+            }
+
         } catch (IOException e) {
             LOG.error("Error reading loinc.csv for semantic processing", e);
-            return;
         }
-
-        // Process rows in parallel
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
-
-        for (String[] columns : loincRows) {
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                // Create a LOINC row concept
-//                createLoincRowConcept(composer, columns);
-            }, executorService);
-
-            futures.add(future);
-        }
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 
     /**
@@ -330,6 +406,7 @@ public class LoincTransformationMojo extends AbstractMojo {
      * This creates a concept for each row in the LOINC CSV.
      */
     private void createLoincRowConcept(Composer composer, String[] columns) {
+        LOG.info("CREATING A LOINC ROW CONCEPT");
         String loincNum = removeQuotes(columns[0]);
         String longCommonName = removeQuotes(columns[25]);
         String consumerName = removeQuotes(columns[12]);
