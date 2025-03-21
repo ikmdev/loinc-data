@@ -77,6 +77,45 @@ public class LoincUtility {
         return TinkarTerm.MASTER_PATH;
     }
 
+    public static EntityProxy.Concept getParentForPartType(UUID namespace, String partType){
+        EntityProxy.Concept parentConcept;
+
+        switch(partType) {
+            case "CLASS":
+                String loincClassStr = "LOINC Class";
+                parentConcept = makeConceptProxy(namespace, loincClassStr);
+                break;
+            case "COMPONENT":
+                String componentStr = "Component";
+                parentConcept = makeConceptProxy(namespace, componentStr);
+                break;
+            case "PROPERTY":
+                String propertyStr = "Property";
+                parentConcept = makeConceptProxy(namespace, propertyStr);
+                break;
+            case "TIME":
+                String timeAspectStr = "Time Aspect";
+                parentConcept = makeConceptProxy(namespace, timeAspectStr);
+                break;
+            case "SYSTEM":
+                String systemStr = "System";
+                parentConcept = makeConceptProxy(namespace, systemStr);
+                break;
+            case "SCALE":
+                String scaleStr = "Scale";
+                parentConcept = makeConceptProxy(namespace, scaleStr);
+                break;
+            case "METHOD":
+                String methodStr = "Method";
+                parentConcept = makeConceptProxy(namespace, methodStr);
+                break;
+            default:
+                parentConcept = null;
+                break;
+        }
+        return parentConcept;
+    }
+
     public static String buildOwlExpression(UUID namespace, String loincNum, String component, String property,
                                      String timeAspect, String system,
                                      String scaleType, String methodType) {
