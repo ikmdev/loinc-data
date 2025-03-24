@@ -352,7 +352,6 @@ public class LoincTransformationMojo extends AbstractMojo {
      * Creates a new LOINC concept based on the provided part data.
      */
     private void createLoincPartConcept(PartData partData, Composer composer) {
-        LOG.info("CREATING A LOINC PART CONCEPT");
         State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
 
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace); // Regenstrief Institute, Inc. Author
@@ -409,6 +408,7 @@ public class LoincTransformationMojo extends AbstractMojo {
         LOG.info("CREATING A LOINC ROW CONCEPT");
         String loincNum = removeQuotes(columns[0]);
         String longCommonName = removeQuotes(columns[25]);
+        LOG.info(longCommonName + " LONG COMMON NAME");
         String consumerName = removeQuotes(columns[12]);
         String shortName = removeQuotes(columns[20]);
         String relatedNames2 = removeQuotes(columns[19]);
@@ -541,8 +541,8 @@ public class LoincTransformationMojo extends AbstractMojo {
             }
 
             // Create Test Membership semantic
-//            createTestMembershipSemantic(session, concept,
-//                    removeQuotes(columns[21]));  // ORDER_OBS
+            createTestMembershipSemantic(session, concept,
+                    removeQuotes(columns[21]));  // ORDER_OBS
         } catch (Exception e) {
             LOG.error("Error creating concept for LOINC: " + loincNum, e);
         }
@@ -688,11 +688,13 @@ public class LoincTransformationMojo extends AbstractMojo {
      * "Subset" -> Test Subset Pattern.
      */
     private void createTestMembershipSemantic(Session session, EntityProxy.Concept concept, String orderObs) {
+        LOG.info("CREATING TESTMEMBERSHIP SEMANTIC");
+        LOG.info("Order OBS: " + orderObs);
         EntityProxy.Pattern pattern;
         EntityProxy.Pattern pattern2 = null;
         if ("Order".equalsIgnoreCase(orderObs)) {
             pattern = LoincUtility.getTestOrderablePattern(namespace);
-        } else if ("Observed".equalsIgnoreCase(orderObs)) {
+        } else if ("Observation".equalsIgnoreCase(orderObs)) {
             pattern = LoincUtility.getTestReportablePattern(namespace);
         }  else if ("Subset".equalsIgnoreCase(orderObs)) {
             pattern = LoincUtility.getTestSubsetPattern(namespace);
