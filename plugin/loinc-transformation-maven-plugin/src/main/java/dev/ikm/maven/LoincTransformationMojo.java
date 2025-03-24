@@ -172,7 +172,7 @@ public class LoincTransformationMojo extends AbstractMojo {
      * Returns a list of filtered PartData objects
      */
     private List<PartData> processPartCsvAsync() {
-        LOG.info("Starting part.csv processing asynchronously");
+        LOG.info("Starting part.csv processing");
 
         List<PartData> filteredPartData = Collections.synchronizedList(new ArrayList<>());
 
@@ -230,7 +230,6 @@ public class LoincTransformationMojo extends AbstractMojo {
      * Create concepts for the filtered part data
      */
     private void createPartConceptsAsync(List<PartData> filteredPartData, Composer composer) {
-        LOG.info("**************** CREATING PART CONCEPTS ASYNCHRONOUSLY ****************");
 
         // Lock object for synchronizing access to the composer
         final Object composerLock = new Object();
@@ -279,7 +278,7 @@ public class LoincTransformationMojo extends AbstractMojo {
      * Process LOINC rows and create semantics
      */
     private void processLoincRowsAsync(Composer composer) {
-        LOG.info("Starting LOINC.csv processing asynchronously");
+        LOG.info("Starting LOINC.csv processing");
 
         // Lock object for synchronizing access to the composer
         final Object composerLock = new Object();
@@ -348,6 +347,7 @@ public class LoincTransformationMojo extends AbstractMojo {
         }
     }
 
+
     /**
      * Creates a new LOINC concept based on the provided part data.
      */
@@ -405,10 +405,8 @@ public class LoincTransformationMojo extends AbstractMojo {
      * This creates a concept for each row in the LOINC CSV.
      */
     private void createLoincRowConcept(Composer composer, String[] columns) {
-        LOG.info("CREATING A LOINC ROW CONCEPT");
         String loincNum = removeQuotes(columns[0]);
         String longCommonName = removeQuotes(columns[25]);
-        LOG.info(longCommonName + " LONG COMMON NAME");
         String consumerName = removeQuotes(columns[12]);
         String shortName = removeQuotes(columns[20]);
         String relatedNames2 = removeQuotes(columns[19]);
@@ -440,7 +438,8 @@ public class LoincTransformationMojo extends AbstractMojo {
                 session.compose((SemanticAssembler assembler) -> {
                     assembler.semantic(semantic)
                             .pattern(pattern)
-                            .reference(concept);
+                            .reference(concept)
+                            .fieldValues(fv -> fv.with(""));
                 });
 
             } else if ("DISCOURAGED".equals(status)) {
@@ -449,7 +448,8 @@ public class LoincTransformationMojo extends AbstractMojo {
                 session.compose((SemanticAssembler assembler) -> {
                     assembler.semantic(semantic)
                             .pattern(pattern)
-                            .reference(concept);
+                            .reference(concept)
+                            .fieldValues(fv -> fv.with(""));
                 });
             }
 
@@ -541,8 +541,8 @@ public class LoincTransformationMojo extends AbstractMojo {
             }
 
             // Create Test Membership semantic
-            createTestMembershipSemantic(session, concept,
-                    removeQuotes(columns[21]));  // ORDER_OBS
+//            createTestMembershipSemantic(session, concept,
+//                    removeQuotes(columns[21]));  // ORDER_OBS
         } catch (Exception e) {
             LOG.error("Error creating concept for LOINC: " + loincNum, e);
         }
@@ -730,7 +730,32 @@ public class LoincTransformationMojo extends AbstractMojo {
     }
 
     private String[] splitCsvLine(String line) {
-        return line.split(",");
+        List<String> tokens = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        boolean inQuotes = false;
+
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+
+            if (c == '"') {
+                // Toggle the inQuotes flag when we see a quote
+                inQuotes = !inQuotes;
+                // Also add the quote character to preserve it for later removal
+                sb.append(c);
+            } else if (c == ',' && !inQuotes) {
+                // If we reach a comma and we're not in quotes, add the token
+                tokens.add(sb.toString());
+                sb.setLength(0);
+            } else {
+                // Otherwise add the character to the token
+                sb.append(c);
+            }
+        }
+
+        // Add the last token
+        tokens.add(sb.toString());
+
+        return tokens.toArray(new String[0]);
     }
 
     private String removeQuotes(String column) {
