@@ -31,7 +31,6 @@
                         <configuration>
                             <dataStore>${user.home}/Solor/generated-data</dataStore>
                             <reasonerType>${reasoner-type}</reasonerType>
-                            <reinferAllHierarchy>${reinferAllHierarchy}</reinferAllHierarchy>
                         </configuration>
                     </execution>
                 </executions>

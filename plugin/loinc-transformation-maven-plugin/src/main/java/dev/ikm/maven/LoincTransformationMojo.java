@@ -611,11 +611,9 @@ public class LoincTransformationMojo extends AbstractMojo {
                                 .isA(parentConcept),
                         concept);
             } else {
-                if (parentConcept!= null) {
-                    session.compose(new StatedAxiom()
+                session.compose(new StatedAxiom()
                                     .semantic(axiomSemantic),
                             concept);
-                }
             }
         } catch (Exception e) {
             LOG.error("Error creating state definition semantic for concept: " + concept, e);
