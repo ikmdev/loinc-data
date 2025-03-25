@@ -93,6 +93,7 @@ public abstract class LoincAbstractIntegrationTest {
                         if (!assertLine(columns)) {
                             notFound++;
                             bw.write(line);
+                            bw.newLine();
                         }
                         break;
                     case 42:
@@ -111,6 +112,7 @@ public abstract class LoincAbstractIntegrationTest {
                         if (!assertLine(columns)) {
                             notFound++;
                             bw.write(line);
+                            bw.newLine();
                         }
                         break;
                     default:

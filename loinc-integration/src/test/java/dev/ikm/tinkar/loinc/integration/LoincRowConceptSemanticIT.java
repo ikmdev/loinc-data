@@ -1,10 +1,14 @@
 package dev.ikm.tinkar.loinc.integration;
 
+import dev.ikm.tinkar.common.id.IntIds;
+import dev.ikm.tinkar.coordinate.Calculators;
+import dev.ikm.tinkar.coordinate.Coordinates;
 import dev.ikm.tinkar.coordinate.stamp.StampCoordinateRecord;
 import dev.ikm.tinkar.coordinate.stamp.StampPositionRecord;
 import dev.ikm.tinkar.coordinate.stamp.StateSet;
 import dev.ikm.tinkar.coordinate.stamp.calculator.Latest;
 import dev.ikm.tinkar.coordinate.stamp.calculator.StampCalculator;
+import dev.ikm.tinkar.coordinate.stamp.calculator.StampCalculatorWithCache;
 import dev.ikm.tinkar.entity.ConceptRecord;
 import dev.ikm.tinkar.entity.ConceptVersionRecord;
 import dev.ikm.tinkar.entity.EntityService;
@@ -12,7 +16,6 @@ import dev.ikm.tinkar.terms.TinkarTerm;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Calendar;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -79,19 +82,18 @@ public class LoincRowConceptSemanticIT extends LoincAbstractIntegrationTest {
         String displayName = columns[39];
 
         UUID id = uuid(columns[0]);
-//        long effectiveDate = SnomedUtility.snomedTimestampToEpochSeconds(columns[1]);
         StateSet active = (columns[11].equals("ACTIVE")) ? StateSet.ACTIVE : StateSet.INACTIVE;
-//        StateSet active = StateSet.ACTIVE;
-
-//        StampPositionRecord stampPosition = StampPositionRecord.make(effectiveDate, TinkarTerm.DEVELOPMENT_PATH.nid());
-        StampPositionRecord stampPosition = StampPositionRecord.make(Calendar.getInstance().get(Calendar.MILLISECOND), TinkarTerm.DEVELOPMENT_PATH.nid());
-
+        long effectiveDate = System.currentTimeMillis();
+        StampPositionRecord stampPosition = StampPositionRecord.make(effectiveDate, TinkarTerm.MASTER_PATH.nid());
+        // options for retrieving StampCalculators
         StampCalculator stampCalc = StampCoordinateRecord.make(active, stampPosition).stampCalculator();
+        StampCalculator stampCalc2 = Calculators.Stamp.MasterLatest();
+        StampCalculator stampCalc3 = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster(), IntIds.set.empty()));
+        StampCalculator stampCalc4 = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
+
         ConceptRecord entity = EntityService.get().getEntityFast(id);
-        Latest<ConceptVersionRecord> latest = stampCalc.latest(entity);
+        Latest<ConceptVersionRecord> latest = stampCalc4.latest(entity);
 
         return latest.isPresent();
-
-//        return false;
     }
 }
