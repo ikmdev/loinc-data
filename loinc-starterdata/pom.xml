@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.ikm.loinc</groupId>
         <artifactId>loinc-data</artifactId>
-        <version>1.0.0-IKDT-873-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>loinc-starterdata</artifactId>
@@ -35,7 +35,7 @@
             <plugin>
                 <groupId>dev.ikm.loinc</groupId>
                 <artifactId>loinc-starterdata-maven-plugin</artifactId>
-                <version>1.0.0-IKDT-873-SNAPSHOT</version>
+                <version>1.0.0-SNAPSHOT</version>
                 <configuration>
                     <namespaceString>${origin.namespace}</namespaceString>
                     <datastorePath>${user.home}/Solor/generated-data</datastorePath>
