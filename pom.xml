@@ -36,7 +36,7 @@
 
         <!-- origin -->
         <origin.working.directory>${project.build.directory}/origin-sources</origin.working.directory>
-        <source.zip>Loinc_2.78.zip</source.zip>
+        <source.zip>Loinc_2.80.zip</source.zip>
     </properties>
     <dependencyManagement>
         <dependencies>
