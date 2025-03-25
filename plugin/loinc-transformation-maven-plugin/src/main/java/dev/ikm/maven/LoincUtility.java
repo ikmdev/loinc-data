@@ -56,6 +56,11 @@ public class LoincUtility {
         return makePatternProxy(namespace, TEST_ORDERABLE_MEMBERSHIP_PATTERN);
     }
 
+    public static EntityProxy.Concept getLoincNumConcept(UUID namespace) {
+        String loincNumber = "LOINC Number";
+        return makeConceptProxy(namespace, loincNumber);
+    }
+
     private static EntityProxy.Pattern makePatternProxy(UUID namespace, String description) {
         return EntityProxy.Pattern.make(description, UuidT5Generator.get(namespace, description));
     }
@@ -72,9 +77,50 @@ public class LoincUtility {
         return TinkarTerm.MASTER_PATH;
     }
 
-    public static String buildOwlExpression(UUID namespace, String component, String property,
+    public static EntityProxy.Concept getParentForPartType(UUID namespace, String partType){
+        EntityProxy.Concept parentConcept;
+
+        switch(partType) {
+            case "CLASS":
+                String loincClassStr = "LOINC Class";
+                parentConcept = makeConceptProxy(namespace, loincClassStr);
+                break;
+            case "COMPONENT":
+                String componentStr = "Component";
+                parentConcept = makeConceptProxy(namespace, componentStr);
+                break;
+            case "PROPERTY":
+                String propertyStr = "Property";
+                parentConcept = makeConceptProxy(namespace, propertyStr);
+                break;
+            case "TIME":
+                String timeAspectStr = "Time Aspect";
+                parentConcept = makeConceptProxy(namespace, timeAspectStr);
+                break;
+            case "SYSTEM":
+                String systemStr = "System";
+                parentConcept = makeConceptProxy(namespace, systemStr);
+                break;
+            case "SCALE":
+                String scaleStr = "Scale";
+                parentConcept = makeConceptProxy(namespace, scaleStr);
+                break;
+            case "METHOD":
+                String methodStr = "Method";
+                parentConcept = makeConceptProxy(namespace, methodStr);
+                break;
+            default:
+                parentConcept = null;
+                break;
+        }
+        return parentConcept;
+    }
+
+    public static String buildOwlExpression(UUID namespace, String loincNum, String component, String property,
                                      String timeAspect, String system,
                                      String scaleType, String methodType) {
+        EntityProxy.Concept loinNumConcept = makeConceptProxy(namespace, loincNum);
+
         String obsEntityStr = "Observable Entity";
         EntityProxy.Concept observableEntityConcept = makeConceptProxy(namespace, obsEntityStr);
 
@@ -98,7 +144,7 @@ public class LoincUtility {
 
         String owlExpression =
                 "EquivalentClasses(\n" +
-                        "    :LOINC_NUM column\n" +
+                        "    :"+  loinNumConcept.publicId().asUuidArray()[0] +"\n" +
                         "    ObjectIntersectionOf(\n" +
                         "        :"+  observableEntityConcept.publicId().asUuidArray()[0] + "\n" +
                         "        ObjectSomeValuesFrom(\n" +
