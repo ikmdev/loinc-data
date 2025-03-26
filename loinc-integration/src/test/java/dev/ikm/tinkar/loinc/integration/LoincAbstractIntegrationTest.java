@@ -84,7 +84,6 @@ public abstract class LoincAbstractIntegrationTest {
             while ((line = br.readLine()) != null) {
                 if (line.startsWith("\"LOINC_NUM\"")) continue;
                 String[] columns = (line.split("\",\""));
-
                 switch (columns.length) {
                     case 40:
                         columns[0] = columns[0].replace("\"", ""); //Removes quotation marks (") from first column
