@@ -38,23 +38,15 @@ public class LoincRowConceptSemanticIT extends LoincAbstractIntegrationTest {
     protected boolean assertLine(String[] columns) {
         UUID id = uuid(columns[0]);
         StateSet active = null;
-        if (columns[11].equals("ACTIVE")) {
+        if (columns[11].equals("ACTIVE") || columns[11].equals("TRIAL") || columns[11].equals("DISCOURAGED")) {
             active = StateSet.ACTIVE;
-        } else
-        if (columns[11].equals("DEPRECATED")) {
-            active = StateSet.INACTIVE;
-        } else { //status is either "TRIAL" or "DISCOURAGED"
-            active = StateSet.WITHDRAWN;
-        }
-        StampCalculator stampCalc4 = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
-        ConceptRecord entity = EntityService.get().getEntityFast(id);
-        Latest<ConceptVersionRecord> latest = stampCalc4.latest(entity);
-
-        if (active.equals(StateSet.ACTIVE) || active.equals(StateSet.INACTIVE)) {
-            return latest.isPresent();
         } else {
-            return latest.isAbsent();
+            active = StateSet.INACTIVE;
         }
+        StampCalculator stampCalc = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
+        ConceptRecord entity = EntityService.get().getEntityFast(id);
+        Latest<ConceptVersionRecord> latest = stampCalc.latest(entity);
 
+        return latest.isPresent();
     }
 }

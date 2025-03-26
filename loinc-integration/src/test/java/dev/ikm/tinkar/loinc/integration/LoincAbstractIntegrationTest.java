@@ -117,7 +117,6 @@ public abstract class LoincAbstractIntegrationTest {
                     default:
                         log.warn("Invalid loinc.csv row (# of columns '"+ columns.length +"' not matching criteria): " + line);
                 }
-
             }
         }
         log.info("We found file: " + sourceFilePath);
