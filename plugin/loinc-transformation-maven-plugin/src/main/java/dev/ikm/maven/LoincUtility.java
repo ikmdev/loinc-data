@@ -142,54 +142,61 @@ public class LoincUtility {
         String methodStr = "Method";
         EntityProxy.Concept methodConcept = makeConceptProxy(namespace, methodStr);
 
+        EntityProxy.Concept componentValueConcept = makeConceptProxy(namespace, component);
+        EntityProxy.Concept propertyValueConcept = makeConceptProxy(namespace, property);
+        EntityProxy.Concept timeAspectValueConcept = makeConceptProxy(namespace, timeAspect);
+        EntityProxy.Concept systemValueConcept = makeConceptProxy(namespace, system);
+        EntityProxy.Concept scaleTypeValueConcept = makeConceptProxy(namespace, scaleType);
+        EntityProxy.Concept methodTypeValueConcept = makeConceptProxy(namespace, methodType);
+
         String owlExpression =
-                "EquivalentClasses(\n" +
-                        "    :"+  loinNumConcept.publicId().asUuidArray()[0] +"\n" +
-                        "    ObjectIntersectionOf(\n" +
-                        "        :"+  observableEntityConcept.publicId().asUuidArray()[0] + "\n" +
-                        "        ObjectSomeValuesFrom(\n" +
-                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
-                        "            ObjectSomeValuesFrom(\n" +
-                        "                :" + componentConcept.publicId().asUuidArray()[0]+ "\n" +
-                        "                :" + component + "\n" +
-                        "            )\n" +
-                        "        )\n" +
-                        "        ObjectSomeValuesFrom(\n" +
-                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
-                        "            ObjectSomeValuesFrom(\n" +
-                        "                :" + propertyConcept.publicId().asUuidArray()[0] + "\n" +
-                        "                :" + property + "\n" +
-                        "            )\n" +
-                        "        )\n" +
-                        "        ObjectSomeValuesFrom(\n" +
-                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
-                        "            ObjectSomeValuesFrom(\n" +
-                        "                :" + timeAspectConcept.publicId().asUuidArray()[0] + "\n" +
-                        "                :" + timeAspect + "\n" +
-                        "            )\n" +
-                        "        )\n" +
-                        "        ObjectSomeValuesFrom(\n" +
-                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
-                        "            ObjectSomeValuesFrom(\n" +
-                        "                :" + systemConcept.publicId().asUuidArray()[0] + "\n" +
-                        "                :" + system + "\n" +
-                        "            )\n" +
-                        "        )\n" +
-                        "        ObjectSomeValuesFrom(\n" +
-                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
-                        "            ObjectSomeValuesFrom(\n" +
-                        "                :" + scaleConcept.publicId().asUuidArray()[0] + "\n" +
-                        "                :" + scaleType + "\n" +
-                        "            )\n" +
-                        "        )\n" +
-                        "        ObjectSomeValuesFrom(\n" +
-                        "            :"+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"\n" +
-                        "            ObjectSomeValuesFrom(\n" +
-                        "                :" + methodConcept.publicId().asUuidArray()[0] + "\n" +
-                        "                :" + methodType + "\n" +
-                        "            )\n" +
-                        "        )\n" +
-                        "    )\n" +
+                "EquivalentClasses(" +
+                        ":["+  loinNumConcept.publicId().asUuidArray()[0] +"]" +
+                        "ObjectIntersectionOf(" +
+                        ":["+  observableEntityConcept.publicId().asUuidArray()[0] + "]" +
+                        "ObjectSomeValuesFrom(" +
+                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                        "ObjectSomeValuesFrom(" +
+                        ":[" + componentConcept.publicId().asUuidArray()[0]+ "]" +
+                        ":[" + componentValueConcept.publicId().asUuidArray()[0] + "]" +
+                        ")" +
+                        ")" +
+                        "ObjectSomeValuesFrom(" +
+                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                        "ObjectSomeValuesFrom(" +
+                        ":[" + propertyConcept.publicId().asUuidArray()[0] + "]" +
+                        ":[" + propertyValueConcept.publicId().asUuidArray()[0] + "]" +
+                        ")" +
+                        ")" +
+                        "ObjectSomeValuesFrom(" +
+                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                        "ObjectSomeValuesFrom(" +
+                        ":[" + timeAspectConcept.publicId().asUuidArray()[0] + "]" +
+                        ":[" + timeAspectValueConcept.publicId().asUuidArray()[0] + "]" +
+                        ")" +
+                        ")" +
+                        "ObjectSomeValuesFrom(" +
+                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                        "ObjectSomeValuesFrom(" +
+                        ":[" + systemConcept.publicId().asUuidArray()[0] + "]" +
+                        ":[" + systemValueConcept.publicId().asUuidArray()[0] + "]" +
+                        ")" +
+                        ")" +
+                        "ObjectSomeValuesFrom(" +
+                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                        "ObjectSomeValuesFrom(" +
+                        ":[" + scaleConcept.publicId().asUuidArray()[0] + "]" +
+                        ":[" + scaleTypeValueConcept.publicId().asUuidArray()[0] + "]" +
+                        ")" +
+                        ")" +
+                        "ObjectSomeValuesFrom(" +
+                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                        "ObjectSomeValuesFrom(" +
+                        ":[" + methodConcept.publicId().asUuidArray()[0] + "]" +
+                        ":[" + methodTypeValueConcept.publicId().asUuidArray()[0] + "]" +
+                        ")" +
+                        ")" +
+                        ")" +
                         ")";
         return owlExpression;
     }
