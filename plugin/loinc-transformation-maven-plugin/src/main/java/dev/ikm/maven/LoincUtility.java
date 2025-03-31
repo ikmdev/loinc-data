@@ -152,48 +152,48 @@ public class LoincUtility {
         String owlExpression =
                 "EquivalentClasses(" +
                         ":["+  loinNumConcept.publicId().asUuidArray()[0] +"]" +
-                        "ObjectIntersectionOf(" +
+                        " ObjectIntersectionOf(" +
                         ":["+  observableEntityConcept.publicId().asUuidArray()[0] + "]" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":[" + componentConcept.publicId().asUuidArray()[0]+ "]" +
-                        ":[" + componentValueConcept.publicId().asUuidArray()[0] + "]" +
+                        " :[" + componentValueConcept.publicId().asUuidArray()[0] + "]" +
                         ")" +
                         ")" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":[" + propertyConcept.publicId().asUuidArray()[0] + "]" +
-                        ":[" + propertyValueConcept.publicId().asUuidArray()[0] + "]" +
+                        " :[" + propertyValueConcept.publicId().asUuidArray()[0] + "]" +
                         ")" +
                         ")" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":[" + timeAspectConcept.publicId().asUuidArray()[0] + "]" +
-                        ":[" + timeAspectValueConcept.publicId().asUuidArray()[0] + "]" +
+                        " :[" + timeAspectValueConcept.publicId().asUuidArray()[0] + "]" +
                         ")" +
                         ")" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":[" + systemConcept.publicId().asUuidArray()[0] + "]" +
-                        ":[" + systemValueConcept.publicId().asUuidArray()[0] + "]" +
+                        " :[" + systemValueConcept.publicId().asUuidArray()[0] + "]" +
                         ")" +
                         ")" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":[" + scaleConcept.publicId().asUuidArray()[0] + "]" +
-                        ":[" + scaleTypeValueConcept.publicId().asUuidArray()[0] + "]" +
+                        " :[" + scaleTypeValueConcept.publicId().asUuidArray()[0] + "]" +
                         ")" +
                         ")" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        "ObjectSomeValuesFrom(" +
+                        " ObjectSomeValuesFrom(" +
                         ":[" + methodConcept.publicId().asUuidArray()[0] + "]" +
-                        ":[" + methodTypeValueConcept.publicId().asUuidArray()[0] + "]" +
+                        " :[" + methodTypeValueConcept.publicId().asUuidArray()[0] + "]" +
                         ")" +
                         ")" +
                         ")" +
