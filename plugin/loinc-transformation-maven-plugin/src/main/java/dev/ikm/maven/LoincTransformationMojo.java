@@ -324,8 +324,6 @@ public class LoincTransformationMojo extends AbstractMojo {
                                 }
                             }
                         }
-
-                        LOG.info("Processed LOINC chunk " + startIndex + " to " + endIndex);
                     } catch (Exception e) {
                         LOG.error("Error processing LOINC chunk " + startIndex + " to " + endIndex, e);
                     }
@@ -355,7 +353,7 @@ public class LoincTransformationMojo extends AbstractMojo {
         State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
 
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace); // Regenstrief Institute, Inc. Author
-        EntityProxy.Concept module = LoincUtility.getModuleConcept(); // Loinc Module??
+        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace); // Loinc Module??
         EntityProxy.Concept path = LoincUtility.getPathConcept(); // Master Path
 
         UUID conceptUuid = UuidT5Generator.get(namespace, partData.getPartNumber());
@@ -420,7 +418,7 @@ public class LoincTransformationMojo extends AbstractMojo {
         }
 
         EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
-        EntityProxy.Concept module = LoincUtility.getModuleConcept();
+        EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace);
         EntityProxy.Concept path = LoincUtility.getPathConcept();
 
         UUID conceptUuid = UuidT5Generator.get(namespace, loincNum);
