@@ -76,7 +76,7 @@ public class LoincUtility {
     }
 
     public static EntityProxy.Concept getPathConcept(){
-        return TinkarTerm.MASTER_PATH;
+        return TinkarTerm.DEVELOPMENT_PATH;
     }
 
     public static EntityProxy.Concept getParentForPartType(UUID namespace, String partType){

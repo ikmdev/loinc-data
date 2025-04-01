@@ -539,8 +539,10 @@ public class LoincTransformationMojo extends AbstractMojo {
             }
 
             // Create Test Membership semantic
-//            createTestMembershipSemantic(session, concept,
-//                    removeQuotes(columns[21]));  // ORDER_OBS
+            if(!removeQuotes(columns[21]).isEmpty()){
+                createTestMembershipSemantic(session, concept,
+                        removeQuotes(columns[21]));
+            };  // ORDER_OBS
         } catch (Exception e) {
             LOG.error("Error creating concept for LOINC: " + loincNum, e);
         }
@@ -561,7 +563,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                 descriptionType.equals(TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE) ? "Regular" : "Definition";
 
         EntityProxy.Semantic semantic = EntityProxy.Semantic.make(
-                PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + description)));
+                PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + description + "DESC")));
 
         try {
             session.compose((SemanticAssembler semanticAssembler) -> semanticAssembler
@@ -625,7 +627,6 @@ public class LoincTransformationMojo extends AbstractMojo {
     private void createAxiomSemanticsLoincConcept(Session session, EntityProxy.Concept concept, String loincNum,
                                                 String component, String property, String timeAspect,
                                                 String system, String scaleType, String methodType) {
-
         String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression(namespace, loincNum, component,property, timeAspect,system,scaleType,methodType);
         EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component)));
         try {
@@ -666,7 +667,7 @@ public class LoincTransformationMojo extends AbstractMojo {
         EntityProxy.Pattern exampleUnitsPattern = LoincUtility.getExampleUnitsPattern(namespace);
         try {
             session.compose((SemanticAssembler assembler) -> {
-                assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace,concept.toString() + exampleUnits))))
+                assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace,concept.toString() + exampleUnits + "UCUM"))))
                         .reference(concept)
                         .pattern(exampleUnitsPattern)
                         .fieldValues(fv -> fv.with(exampleUnits));
@@ -684,8 +685,6 @@ public class LoincTransformationMojo extends AbstractMojo {
      * "Subset" -> Test Subset Pattern.
      */
     private void createTestMembershipSemantic(Session session, EntityProxy.Concept concept, String orderObs) {
-        LOG.info("CREATING TESTMEMBERSHIP SEMANTIC");
-        LOG.info("Order OBS: " + orderObs);
         EntityProxy.Pattern pattern;
         EntityProxy.Pattern pattern2 = null;
         if ("Order".equalsIgnoreCase(orderObs)) {
@@ -704,7 +703,7 @@ public class LoincTransformationMojo extends AbstractMojo {
         try {
             EntityProxy.Pattern finalPattern = pattern2;
             session.compose((SemanticAssembler assembler) -> {
-                assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + orderObs))))
+                assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + orderObs + "TESTMEM"))))
                         .pattern(pattern)
                         .reference(concept)
                         .fieldValues(fv -> fv.with(""));
@@ -732,25 +731,17 @@ public class LoincTransformationMojo extends AbstractMojo {
 
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
-
             if (c == '"') {
-                // Toggle the inQuotes flag when we see a quote
                 inQuotes = !inQuotes;
-                // Also add the quote character to preserve it for later removal
                 sb.append(c);
             } else if (c == ',' && !inQuotes) {
-                // If we reach a comma and we're not in quotes, add the token
                 tokens.add(sb.toString());
                 sb.setLength(0);
             } else {
-                // Otherwise add the character to the token
                 sb.append(c);
             }
         }
-
-        // Add the last token
         tokens.add(sb.toString());
-
         return tokens.toArray(new String[0]);
     }
 
