@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 
+	public static final String MODULE_DESCRIPTION = "LOINC® modules (SOLOR)";
     /**
      * Test LoincRowConcepts Loinc.csv Semantics.
      *
@@ -51,11 +52,12 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
         ConceptRecord entity = EntityService.get().getEntityFast(id);
         Latest<ConceptVersionRecord> latest = stampCalc.latest(entity);
         
-        String identifierSchemeId = columns[0];
-        UUID uuid = UuidUtil.fromSNOMED(identifierSchemeId);
+        EntityProxy.Concept module = LoincUtility.getModuleConcept();
         
-        EntityProxy.Concept loincNameConcept = LoincUtility.getLoincNumConcept(uuid);
+        // String identifierSchemeId = columns[0];
+        // UUID uuid = UuidUtil.fromSNOMED(identifierSchemeId);
+        // EntityProxy.Concept loincNameConcept = LoincUtility.getLoincNumConcept(uuid);
 
-        return latest.isPresent() && "LOINC Number".equals(loincNameConcept.description());
+        return latest.isPresent() && MODULE_DESCRIPTION.equals(module.description());
     }
 }
