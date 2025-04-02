@@ -38,7 +38,7 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
         String errorFile = "target/failsafe-reports/LoincCsv_not_found.txt";
 
         String absolutePath = findFilePath(sourceFilePath, "Loinc.csv");
-        int notFound = processFile(absolutePath, errorFile);
+        int notFound = processLoincFile(absolutePath, errorFile);
 
         assertEquals(0, notFound, "Unable to find " + notFound + " Loinc.csv semantics. Details written to " + errorFile);
     }
