@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -76,7 +77,7 @@ public abstract class LoincAbstractIntegrationTest {
      * @return File status, either Found/NotFound
      * @throws IOException
      */
-    protected int processFile(String sourceFilePath, String errorFile) throws IOException {
+    protected int processLoincFile(String sourceFilePath, String errorFile) throws IOException {
         int notFound = 0, tempIndex = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(sourceFilePath));
              BufferedWriter bw = new BufferedWriter(new FileWriter(errorFile))) {
@@ -123,10 +124,55 @@ public abstract class LoincAbstractIntegrationTest {
         return notFound;
     }
 
+    /**
+     * Process sourceFilePath
+     *
+     * @param sourceFilePath
+     * @param errorFile
+     * @return File status, either Found/NotFound
+     * @throws IOException
+     */
+    protected int processPartFile(String sourceFilePath, String errorFile) throws IOException {
+        int notFound = 0, tempIndex = 0;
+        try (BufferedReader br = new BufferedReader(new FileReader(sourceFilePath));
+             BufferedWriter bw = new BufferedWriter(new FileWriter(errorFile))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith("\"PartNumber\"")) continue;
+                String[] columns = (line.split("\",\""));
+
+                columns[0] = columns[0].replace("\"", ""); //Removes quotation marks (") from first column
+                columns[4] = columns[4].replace("\"", ""); //Removes quotation marks (") from last column
+
+                //Only process rows with the target PartTypeName Transformed. Otherwise, null Entity is returned.
+                if (TARGET_PART_TYPES.contains(columns[1])) {
+                    if (!assertLine(columns)) {
+                        notFound++;
+                        bw.write(line);
+                        bw.newLine();
+                    }
+                }
+            }
+        }
+        log.info("We found file: " + sourceFilePath);
+        return notFound;
+    }
+
     protected UUID uuid(String id) {
 //        return UuidUtil.fromSNOMED(id);
         return UuidT5Generator.get(UUID.fromString("3094dbd1-60cf-44a6-92e3-0bb32ca4d3de"), id);
     }
+
+    // List of specific part types to filter for
+    private static final Set<String> TARGET_PART_TYPES = Set.of(
+            "COMPONENT",
+            "PROPERTY",
+            "TIME",
+            "SYSTEM",
+            "SCALE",
+            "METHOD",
+            "CLASS"
+    );
 
     protected abstract boolean assertLine(String[] columns);
 }
