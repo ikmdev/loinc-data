@@ -23,6 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 
 	public static final String MODULE_DESCRIPTION = "LOINC® modules (SOLOR)";
+	public static final String LOINC_NUMBER = "LOINC Number";
+	
+	public static final String AUTHOR_CONCEPT = "Regenstrief Institute, Inc. Author";
+	public static final String OWL_EXPRESSION_ELEMENT = "ObjectIntersectionOf";
     /**
      * Test LoincRowConcepts Loinc.csv Semantics.
      *
@@ -42,22 +46,27 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
     @Override
     protected boolean assertLine(String[] columns) {
         UUID id = uuid(columns[0]);
+        
+        
         StateSet active = null;
         if (columns[11].equals("ACTIVE") || columns[11].equals("TRIAL") || columns[11].equals("DISCOURAGED")) {
             active = StateSet.ACTIVE;
         } else {
             active = StateSet.INACTIVE;
         }
+        
         StampCalculator stampCalc = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
         ConceptRecord entity = EntityService.get().getEntityFast(id);
         Latest<ConceptVersionRecord> latest = stampCalc.latest(entity);
         
+        String identifierSchemeId = columns[0];
+        EntityProxy.Concept authorConcept = LoincUtility.getAuthorConcept(UuidUtil.SNOMED_NAMESPACE);
         EntityProxy.Concept module = LoincUtility.getModuleConcept();
+        String owlExpression = LoincUtility.buildOwlExpression(UuidUtil.SNOMED_NAMESPACE, identifierSchemeId, "component", "property", "timeAspect", "system", "scaleType", "methodType");
         
-        // String identifierSchemeId = columns[0];
-        // UUID uuid = UuidUtil.fromSNOMED(identifierSchemeId);
-        // EntityProxy.Concept loincNameConcept = LoincUtility.getLoincNumConcept(uuid);
+        UUID uuid = UuidUtil.fromSNOMED(identifierSchemeId);
+        EntityProxy.Concept loincNameConcept = LoincUtility.getLoincNumConcept(uuid);
 
-        return latest.isPresent() && MODULE_DESCRIPTION.equals(module.description());
+        return latest.isPresent() && MODULE_DESCRIPTION.equals(module.description()) && AUTHOR_CONCEPT.equals(authorConcept.description()) && LOINC_NUMBER.equals(loincNameConcept.description()) && owlExpression.contains(OWL_EXPRESSION_ELEMENT);
     }
 }
