@@ -1,14 +1,17 @@
 package dev.ikm.maven;
 
-import dev.ikm.tinkar.common.id.PublicIds;
 import dev.ikm.tinkar.common.util.uuid.UuidT5Generator;
 import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.TinkarTerm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.swing.text.html.parser.Entity;
 import java.util.UUID;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class LoincUtility {
+    private static final Logger LOG = LoggerFactory.getLogger(LoincTransformationMojo.class.getSimpleName());
     private static final String loincAuthorStr = "Regenstrief Institute, Inc. Author";
 
     public static final String LOINC_TRIAL_STATUS_PATTERN = "LOINC Trial Status Pattern";
@@ -18,6 +21,8 @@ public class LoincUtility {
     public static final String TEST_REPORTABLE_MEMBERSHIP_PATTERN = "Test Reportable Membership Pattern";
     public static final String TEST_SUBSET_MEMBERSHIP_PATTERN = "Test Subset Membership Pattern";
     public static final String TEST_ORDERABLE_MEMBERSHIP_PATTERN = "Test Orderable Membership Pattern";
+
+    public static final Map<String, String> partCache = new ConcurrentHashMap<>();
 
     /**
      * retrieves user concept
@@ -65,7 +70,7 @@ public class LoincUtility {
         return EntityProxy.Pattern.make(description, UuidT5Generator.get(namespace, description));
     }
 
-    private static EntityProxy.Concept makeConceptProxy(UUID namespace, String description) {
+    public static EntityProxy.Concept makeConceptProxy(UUID namespace, String description) {
         return EntityProxy.Concept.make(description, UuidT5Generator.get(namespace, description));
     }
 
@@ -77,6 +82,24 @@ public class LoincUtility {
 
     public static EntityProxy.Concept getPathConcept(){
         return TinkarTerm.DEVELOPMENT_PATH;
+    }
+
+    public static void addPartToCache(String partName, String partTypeName, String partNumber){
+        String key = partName + "::" + partTypeName;
+        partCache.put(key, partNumber);
+    }
+
+    public static String getPartNumberFromCache(String partName, String partTypeName){
+        String key = partName + "::" + partTypeName;
+        return partCache.get(key);
+    }
+
+    public static void clearPartCache(){
+        partCache.clear();
+    }
+
+    public static int getPartCacheSize(){
+        return partCache.size();
     }
 
     public static EntityProxy.Concept getParentForPartType(UUID namespace, String partType){
@@ -144,63 +167,89 @@ public class LoincUtility {
         String methodStr = "Method";
         EntityProxy.Concept methodConcept = makeConceptProxy(namespace, methodStr);
 
-        EntityProxy.Concept componentValueConcept = makeConceptProxy(namespace, component);
-        EntityProxy.Concept propertyValueConcept = makeConceptProxy(namespace, property);
-        EntityProxy.Concept timeAspectValueConcept = makeConceptProxy(namespace, timeAspect);
-        EntityProxy.Concept systemValueConcept = makeConceptProxy(namespace, system);
-        EntityProxy.Concept scaleTypeValueConcept = makeConceptProxy(namespace, scaleType);
-        EntityProxy.Concept methodTypeValueConcept = makeConceptProxy(namespace, methodType);
+        String componentPartNumber = getPartNumberFromCache(component.toLowerCase(), "COMPONENT");
+        String propertyPartNumber = getPartNumberFromCache(property.toLowerCase(), "PROPERTY");
+        String timeAspectPartNumber = getPartNumberFromCache(timeAspect.toLowerCase(), "TIME");
+        String systemPartNumber = getPartNumberFromCache(system.toLowerCase(), "SYSTEM");
+        String scaleTypePartNumber = getPartNumberFromCache(scaleType.toLowerCase(), "SCALE");
+        String methodTypePartNumber = getPartNumberFromCache(methodType.toLowerCase(), "METHOD");
 
-        String owlExpression =
-                "EquivalentClasses(" +
-                        ":["+  loinNumConcept.publicId().asUuidArray()[0] +"]" +
-                        " ObjectIntersectionOf(" +
-                        ":["+  observableEntityConcept.publicId().asUuidArray()[0] + "]" +
-                        " ObjectSomeValuesFrom(" +
-                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        " ObjectSomeValuesFrom(" +
-                        ":[" + componentConcept.publicId().asUuidArray()[0]+ "]" +
-                        " :[" + componentValueConcept.publicId().asUuidArray()[0] + "]" +
-                        ")" +
-                        ")" +
-                        " ObjectSomeValuesFrom(" +
-                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        " ObjectSomeValuesFrom(" +
-                        ":[" + propertyConcept.publicId().asUuidArray()[0] + "]" +
-                        " :[" + propertyValueConcept.publicId().asUuidArray()[0] + "]" +
-                        ")" +
-                        ")" +
-                        " ObjectSomeValuesFrom(" +
-                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        " ObjectSomeValuesFrom(" +
-                        ":[" + timeAspectConcept.publicId().asUuidArray()[0] + "]" +
-                        " :[" + timeAspectValueConcept.publicId().asUuidArray()[0] + "]" +
-                        ")" +
-                        ")" +
-                        " ObjectSomeValuesFrom(" +
-                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        " ObjectSomeValuesFrom(" +
-                        ":[" + systemConcept.publicId().asUuidArray()[0] + "]" +
-                        " :[" + systemValueConcept.publicId().asUuidArray()[0] + "]" +
-                        ")" +
-                        ")" +
-                        " ObjectSomeValuesFrom(" +
-                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        " ObjectSomeValuesFrom(" +
-                        ":[" + scaleConcept.publicId().asUuidArray()[0] + "]" +
-                        " :[" + scaleTypeValueConcept.publicId().asUuidArray()[0] + "]" +
-                        ")" +
-                        ")" +
-                        " ObjectSomeValuesFrom(" +
-                        ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
-                        " ObjectSomeValuesFrom(" +
-                        ":[" + methodConcept.publicId().asUuidArray()[0] + "]" +
-                        " :[" + methodTypeValueConcept.publicId().asUuidArray()[0] + "]" +
-                        ")" +
-                        ")" +
-                        ")" +
-                        ")";
-        return owlExpression;
+        EntityProxy.Concept componentValueConcept = null;
+
+        EntityProxy.Concept methodTypeValueConcept = null;
+
+        if(!component.isEmpty()) {
+            componentValueConcept = makeConceptProxy(namespace, componentPartNumber);
+        }
+        EntityProxy.Concept propertyValueConcept = makeConceptProxy(namespace, propertyPartNumber);
+        EntityProxy.Concept timeAspectValueConcept = makeConceptProxy(namespace, timeAspectPartNumber);
+        EntityProxy.Concept systemValueConcept = makeConceptProxy(namespace, systemPartNumber);
+        EntityProxy.Concept scaleTypeValueConcept = makeConceptProxy(namespace, scaleTypePartNumber);
+        if(!methodType.isEmpty()) {
+            methodTypeValueConcept = makeConceptProxy(namespace, methodTypePartNumber);
+        }
+
+        StringBuilder owlExpressionBuilder = new StringBuilder();
+
+        owlExpressionBuilder.append("EquivalentClasses(:["+  loinNumConcept.publicId().asUuidArray()[0] +"]");
+        owlExpressionBuilder.append( " ObjectIntersectionOf(:["+  observableEntityConcept.publicId().asUuidArray()[0] + "]");
+        if(!component.isEmpty()) {
+            owlExpressionBuilder.append(" ObjectSomeValuesFrom(" +
+                    ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                    " ObjectSomeValuesFrom(" +
+                    ":[" + componentConcept.publicId().asUuidArray()[0]+ "]" +
+                    " :[" + componentValueConcept.publicId().asUuidArray()[0] + "]" +
+                    ")" +
+                    ")");
+        }
+        if(!property.isEmpty()){
+            owlExpressionBuilder.append(" ObjectSomeValuesFrom(" +
+                    ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                    " ObjectSomeValuesFrom(" +
+                    ":[" + propertyConcept.publicId().asUuidArray()[0] + "]" +
+                    " :[" + propertyValueConcept.publicId().asUuidArray()[0] + "]" +
+                    ")" +
+                    ")");
+        }
+        if (!timeAspect.isEmpty()){
+            owlExpressionBuilder.append(" ObjectSomeValuesFrom(" +
+                    ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                    " ObjectSomeValuesFrom(" +
+                    ":[" + timeAspectConcept.publicId().asUuidArray()[0] + "]" +
+                    " :[" + timeAspectValueConcept.publicId().asUuidArray()[0] + "]" +
+                    ")" +
+                    ")");
+        }
+        if(!system.isEmpty()){
+            owlExpressionBuilder.append(" ObjectSomeValuesFrom(" +
+                    ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                    " ObjectSomeValuesFrom(" +
+                    ":[" + systemConcept.publicId().asUuidArray()[0] + "]" +
+                    " :[" + systemValueConcept.publicId().asUuidArray()[0] + "]" +
+                    ")" +
+                    ")");
+        }
+        if(!scaleType.isEmpty()){
+            owlExpressionBuilder.append(" ObjectSomeValuesFrom(" +
+                    ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                    " ObjectSomeValuesFrom(" +
+                    ":[" + scaleConcept.publicId().asUuidArray()[0] + "]" +
+                    " :[" + scaleTypeValueConcept.publicId().asUuidArray()[0] + "]" +
+                    ")" +
+                    ")");
+        }
+        if(!methodType.isEmpty()){
+            owlExpressionBuilder.append(" ObjectSomeValuesFrom(" +
+                    ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+                    " ObjectSomeValuesFrom(" +
+                    ":[" + methodConcept.publicId().asUuidArray()[0] + "]" +
+                    " :[" + methodTypeValueConcept.publicId().asUuidArray()[0] + "]" +
+                    ")" +
+                    ")");
+        }
+        owlExpressionBuilder.append("))");
+
+        return owlExpressionBuilder.toString();
     }
 
 }

@@ -1,5 +1,6 @@
 package dev.ikm.maven;
 
+import dev.ikm.tinkar.common.id.PublicIds;
 import dev.ikm.tinkar.composer.Composer;
 import dev.ikm.tinkar.composer.Session;
 import dev.ikm.tinkar.composer.assembler.ConceptAssembler;
@@ -11,7 +12,9 @@ import dev.ikm.tinkar.composer.template.USDialect;
 import dev.ikm.tinkar.composer.template.Definition;
 import dev.ikm.tinkar.composer.template.StatedAxiom;
 import dev.ikm.tinkar.composer.template.Synonym;
+import dev.ikm.tinkar.composer.template.AxiomSyntax;
 
+import dev.ikm.tinkar.entity.EntityService;
 import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.State;
 import dev.ikm.tinkar.terms.TinkarTerm;
@@ -73,6 +76,8 @@ public class LoincStarterDataMojo extends AbstractMojo {
     public static final String TEST_SUBSET_MEMBERSHIP_PATTERN = "Test Subset Membership Pattern";
     public static final String TEST_ORDERABLE_MEMBERSHIP_PATTERN = "Test Orderable Membership Pattern";
 
+    public static final String ATTRIBUTE_ID = "3af1c784-8a62-59e5-82e7-767de930843b";
+
     public void execute() throws MojoExecutionException {
         this.namespace = UUID.fromString(namespaceString);
         try {
@@ -104,13 +109,19 @@ public class LoincStarterDataMojo extends AbstractMojo {
     }
 
     void transform() {
-        createLoincAuthor();
+        EntityService.get().beginLoadPhase();
+        try {
+            createLoincAuthor();
 
-        Session session = composer.open(State.ACTIVE, STAMP_TIME, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
-        createConcepts(session);
-        createPatterns(session);
+            Session session = composer.open(State.ACTIVE, STAMP_TIME, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
+            createConcepts(session);
+            createPatterns(session);
 
-        composer.commitAllSessions();
+
+            composer.commitAllSessions();
+        } finally {
+            EntityService.get().endLoadPhase();
+        }
     }
 
     private void createLoincAuthor() {
@@ -128,7 +139,8 @@ public class LoincStarterDataMojo extends AbstractMojo {
         createConcept(session, loincNumber, "LOINC Code", "The unique LOINC Code is a string in the format of nnnnnnnn-n.", makeConceptProxy(loincNumber), IDENTIFIER_SOURCE);
 
         String attributeStr = "Attribute";
-        EntityProxy.Concept attribute = makeConceptProxy(attributeStr);
+        EntityProxy.Concept attribute = EntityProxy.Concept.make(attributeStr, PublicIds.of(UUID.fromString(ATTRIBUTE_ID), UuidT5Generator.get(namespace, attributeStr))); // Force UUID of Concept Model Object Attribute)
+//        EntityProxy.Concept attribute = makeConceptProxy(attributeStr);
 
         String componentStr = "Component";
         EntityProxy.Concept component = makeConceptProxy(componentStr);
@@ -251,9 +263,14 @@ public class LoincStarterDataMojo extends AbstractMojo {
                                     .identifier(identifier.asUuidArray()[0].toString()))
                             .attach(new StatedNavigation()
                                     .parents(parent)
-                                    .children(children))
-                            .attach(new StatedAxiom()
-                                    .isA(parent));
+                                    .children(children));
+                    if(parent.publicId().contains(UUID.fromString("3af1c784-8a62-59e5-82e7-767de930843b"))){
+                        conceptAssembler.attach((AxiomSyntax owlAxiom) -> owlAxiom
+                                .text(String.format("SubObjectPropertyOf(:[%s] :[%s])", identifier.asUuidArray()[0], parent.asUuidArray()[0])));
+                    } else {
+                        conceptAssembler.attach(new StatedAxiom()
+                                .isA(parent));
+                    }
                     if (synonym != null) {
                         conceptAssembler.attach((Synonym syn) -> syn
                                 .language(ENGLISH_LANGUAGE)
@@ -265,7 +282,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
                         conceptAssembler.attach((Definition defn) -> defn
                                 .language(ENGLISH_LANGUAGE)
                                 .text(definition)
-                                .caseSignificance(CASE_SENSITIVE_EVALUATION)
+                                .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
                                 .attach(usDialect()));
                     }
                 }
@@ -278,13 +295,21 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept trialStatus = makeConceptProxy(trialStatusStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(LOINC_TRIAL_STATUS_PATTERN))
                         .meaning(trialStatus)
-                        .purpose(STATUS_VALUE));
+                        .purpose(STATUS_VALUE))
+                        .attach((Synonym synonym) -> synonym
+                                .text("Trial Status Pattern")
+                                .language(ENGLISH_LANGUAGE)
+                                .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE));
 
         String discouragedStatusStr = "Discouraged Status";
         EntityProxy.Concept discouragedStatus = makeConceptProxy(discouragedStatusStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(LOINC_DISCOURAGED_STATUS_PATTERN))
                 .meaning(discouragedStatus)
-                .purpose(STATUS_VALUE));
+                .purpose(STATUS_VALUE))
+                .attach((Synonym synonym) -> synonym
+                        .text("Discouraged Status Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE));
 
         String loincClassStr = "LOINC Class";
         EntityProxy.Concept loincClass = makeConceptProxy(loincClassStr);
@@ -300,7 +325,11 @@ public class LoincStarterDataMojo extends AbstractMojo {
                         .fieldDefinition(
                                 loincClassType,
                                 loincClassType,
-                                COMPONENT_FIELD));
+                                COMPONENT_FIELD))
+                .attach((Synonym synonym) -> synonym
+                        .text("LOINC ClassType Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE));
 
         String exampleUnitsStr = "Example Units (UCUM)";
         EntityProxy.Concept exampleUnits = makeConceptProxy(exampleUnitsStr);
@@ -310,25 +339,41 @@ public class LoincStarterDataMojo extends AbstractMojo {
                 .fieldDefinition(
                         exampleUnits,
                         exampleUnits,
-                        STRING));
+                        STRING))
+                .attach((Synonym synonym) -> synonym
+                        .text("Example Units (UCUM) Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE));;
 
         String orderableStr = "Test Orderable";
         EntityProxy.Concept orderable = makeConceptProxy(orderableStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_ORDERABLE_MEMBERSHIP_PATTERN))
                 .meaning(orderable)
-                .purpose(MEMBERSHIP_SEMANTIC));
+                .purpose(MEMBERSHIP_SEMANTIC))
+                .attach((Synonym synonym) -> synonym
+                        .text("Test Orderable Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE));
 
         String reportableStr = "Test Reportable";
         EntityProxy.Concept reportable = makeConceptProxy(reportableStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_REPORTABLE_MEMBERSHIP_PATTERN))
                 .meaning(reportable)
-                .purpose(MEMBERSHIP_SEMANTIC));
+                .purpose(MEMBERSHIP_SEMANTIC))
+                .attach((Synonym synonym) -> synonym
+                        .text("Test Reportable Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE));;
 
         String testSubsetStr = "Test Subset";
         EntityProxy.Concept testSubset = makeConceptProxy(testSubsetStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_SUBSET_MEMBERSHIP_PATTERN))
                 .meaning(testSubset)
-                .purpose(MEMBERSHIP_SEMANTIC));
+                .purpose(MEMBERSHIP_SEMANTIC))
+                .attach((Synonym synonym) -> synonym
+                        .text("Test Subset Membership Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE));
 
     }
 
