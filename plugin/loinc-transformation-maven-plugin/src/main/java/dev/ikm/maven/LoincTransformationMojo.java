@@ -72,12 +72,15 @@ public class LoincTransformationMojo extends AbstractMojo {
     private UUID namespace;
     private ExecutorService executorService;
 
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         LOG.info("########## Loinc Transformer Starting...");
 
         this.namespace = UUID.fromString(namespaceString);
         File datastore = new File(datastorePath);
+
+        LoincUtility.clearPartCache();
 
         try {
             unzipRawData(inputDirectoryPath);
@@ -101,14 +104,14 @@ public class LoincTransformationMojo extends AbstractMojo {
                 List<PartData> filteredParts = processPartCsvAsync();
                 createPartConceptsAsync(filteredParts, composer);
                 LOG.info("Part.csv processing completed");
-
+                LOG.info("Part Concepts in Cache: " + LoincUtility.getPartCacheSize());
                 LOG.info("Starting loinc.csv processing...");
                 processLoincRowsAsync(composer);
                 LOG.info("Loinc.csv processing completed");
             } catch (Exception e) {
                 LOG.error("Error during data processing", e);
             }
-
+            LOG.info("Creating Concepts for Sets...");
             // Commit all sessions after both processes are complete
             LOG.info("Committing all sessions...");
             composer.commitAllSessions();
@@ -358,6 +361,8 @@ public class LoincTransformationMojo extends AbstractMojo {
 
         UUID conceptUuid = UuidT5Generator.get(namespace, partData.getPartNumber());
 
+        LoincUtility.addPartToCache(partData.getPartName(), partData.getPartTypeName(), partData.getPartNumber());
+
         EntityProxy.Concept loincNumConcept = LoincUtility.getLoincNumConcept(namespace);
 
         Session session = composer.open(state, author, module, path);
@@ -602,7 +607,7 @@ public class LoincTransformationMojo extends AbstractMojo {
     }
 
     private void createAxiomSemanticForPartConcept(Session session, EntityProxy.Concept concept, String partTypeName) {
-        EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + partTypeName)));
+        EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + partTypeName + "AXIOM")));
         EntityProxy.Concept parentConcept = LoincUtility.getParentForPartType(namespace, partTypeName);
         try {
             if (parentConcept!= null) {
@@ -627,15 +632,21 @@ public class LoincTransformationMojo extends AbstractMojo {
     private void createAxiomSemanticsLoincConcept(Session session, EntityProxy.Concept concept, String loincNum,
                                                 String component, String property, String timeAspect,
                                                 String system, String scaleType, String methodType) {
-        String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression(namespace, loincNum, component,property, timeAspect,system,scaleType,methodType);
-        EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component)));
-        try {
-            session.compose(new AxiomSyntax()
-                            .semantic(axiomSemantic)
-                            .text(owlExpressionWithPublicIds),
-                    concept);
-        } catch (Exception e) {
-            LOG.error("Error creating state definition semantic for concept: " + concept, e);
+        LOG.info("METHOD: " + methodType);
+        if(methodType.equals("")) {
+            LOG.info("METHOD IS EMPTY");
+        }
+        if(!component.isEmpty() || !methodType.isEmpty()) {
+            String owlExpressionWithPublicIds = LoincUtility.buildOwlExpression(namespace, loincNum, component, property, timeAspect, system, scaleType, methodType);
+            EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.toString() + component + "AXIOM")));
+            try {
+                session.compose(new AxiomSyntax()
+                                .semantic(axiomSemantic)
+                                .text(owlExpressionWithPublicIds),
+                        concept);
+            } catch (Exception e) {
+                LOG.error("Error creating state definition semantic for concept: " + concept, e);
+            }
         }
     }
 
