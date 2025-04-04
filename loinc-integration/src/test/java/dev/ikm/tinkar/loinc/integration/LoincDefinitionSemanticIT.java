@@ -35,14 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 
-	public static final String MODULE_DESCRIPTION = "LOINC® modules (SOLOR)";
-	public static final String LOINC_NUMBER = "LOINC Number";
-
-	public static final String AUTHOR_CONCEPT = "Regenstrief Institute, Inc. Author";
-	public static final String OWL_EXPRESSION_ELEMENT = "ObjectIntersectionOf";
-
 	/**
-	 * Test LoincRowConcepts Loinc.csv Semantics.
+	 * Test LoincDefinition Loinc.csv Semantics.
 	 *
 	 * @result Reads content from file and validates Concept of Semantics by calling
 	 *         private method assertConcept().
@@ -50,13 +44,13 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 	@Test
 	public void testLoincDefinitionSemantics() throws IOException {
 		String sourceFilePath = "../loinc-origin/target/origin-sources";
-		String errorFile = "target/failsafe-reports/LoincCsv_not_found.txt";
+		String errorFile = "target/failsafe-reports/LoincCsv_definitions_not_found.txt";
 
 		String absolutePath = findFilePath(sourceFilePath, "Loinc.csv");
 		int notFound = processLoincFile(absolutePath, errorFile);
 
 		assertEquals(0, notFound,
-				"Unable to find " + notFound + " Loinc.csv semantics. Details written to " + errorFile);
+				"Unable to find " + notFound + " Loinc.csv 'Definition' semantics. Details written to " + errorFile);
 	}
 
 	@Override
