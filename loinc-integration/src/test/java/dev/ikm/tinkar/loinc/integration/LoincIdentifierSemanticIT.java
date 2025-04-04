@@ -25,7 +25,7 @@ public class LoincIdentifierSemanticIT extends LoincAbstractIntegrationTest {
      * @result Reads content from file and validates Concept of Semantics by calling private method assertConcept().
      */
     @Test
-    public void testIdentifierConceptSemantics() throws IOException {
+    public void testIdentifierSemantics() throws IOException {
         String sourceFilePath = "../loinc-origin/target/origin-sources";
         String errorFile = "target/failsafe-reports/LoincCsv_identifiers_not_found.txt";
 
