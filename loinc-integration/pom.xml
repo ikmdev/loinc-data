@@ -35,6 +35,12 @@
             <artifactId>entity-provider</artifactId>
             <scope>test</scope>
         </dependency>
+        
+        <dependency>
+        	<groupId>dev.ikm.tinkar</groupId>
+            <artifactId>entity</artifactId>
+        </dependency>
+                    
         <dependency>
             <groupId>dev.ikm.tinkar</groupId>
             <artifactId>executor-provider</artifactId>
