@@ -264,7 +264,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
                             .attach(new StatedNavigation()
                                     .parents(parent)
                                     .children(children));
-                    if(parent.publicId().contains(UUID.fromString("3af1c784-8a62-59e5-82e7-767de930843b"))){
+                    if(parent.publicId().contains(UUID.fromString(ATTRIBUTE_ID))){
                         conceptAssembler.attach((AxiomSyntax owlAxiom) -> owlAxiom
                                 .text(String.format("SubObjectPropertyOf(:[%s] :[%s])", identifier.asUuidArray()[0], parent.asUuidArray()[0])));
                     } else {
