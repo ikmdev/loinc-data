@@ -33,6 +33,24 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>dev.ikm.maven</groupId>
+                <artifactId>snomed-ct-starterdata-maven-plugin</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <configuration>
+                    <namespaceString>${origin.namespace}</namespaceString>
+                    <datastorePath>${user.home}/Solor/generated-data</datastorePath>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>run-snomed-starterdata</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>run-snomed-starterdata</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>dev.ikm.loinc</groupId>
                 <artifactId>loinc-starterdata-maven-plugin</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
