@@ -47,7 +47,7 @@ public class LoincIdentifierSemanticIT extends LoincAbstractIntegrationTest {
         String identifier = columns[0];
         UUID uuid = UuidUtil.fromSNOMED(identifier);
 
-        StampCalculator stampCalc = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(state, Coordinates.Position.LatestOnMaster()));
+        StampCalculator stampCalc = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(state, Coordinates.Position.LatestOnDevelopment()));
         ConceptRecord entity = EntityService.get().getEntityFast(uuid);
         Latest<ConceptVersionRecord> latest = stampCalc.latest(entity);
 
