@@ -20,11 +20,16 @@ import dev.ikm.tinkar.entity.PatternEntityVersion;
 import dev.ikm.tinkar.entity.SemanticRecord;
 import dev.ikm.tinkar.entity.SemanticVersionRecord;
 import dev.ikm.tinkar.terms.EntityProxy;
+import dev.ikm.tinkar.terms.EntityProxy.Concept;
 import dev.ikm.tinkar.terms.TinkarTerm;
 
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static dev.ikm.tinkar.terms.TinkarTerm.DEFINITION_DESCRIPTION_TYPE;
@@ -35,6 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 
+	int count = 0;
+	
 	/**
 	 * Test LoincDefinition Loinc.csv Semantics.
 	 *
@@ -49,12 +56,16 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 		String absolutePath = findFilePath(sourceFilePath, "Loinc.csv");
 		int notFound = processLoincFile(absolutePath, errorFile);
 
+		System.out.println(" >>>> COUNT >>> " + count);
+		
 		assertEquals(0, notFound,
 				"Unable to find " + notFound + " Loinc.csv 'Definition' semantics. Details written to " + errorFile);
 	}
 
 	@Override
 	protected boolean assertLine(String[] columns) {
+		Map<String, Concept> termConceptMap = new HashMap<>();
+		
 		UUID id = uuid(columns[0]);
 
 		String longCommonName = removeQuotes(columns[25]);
@@ -63,49 +74,61 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 		String relatedNames2 = removeQuotes(columns[19]);
 		String displayName = removeQuotes(columns[39]);
 		String definitionDescription = removeQuotes(columns[10]);
-
+		
 		/*
 		 * TinkarTerm.DEFINITION_DESCRIPTION_TYPE;
 		 * TinkarTerm.FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
 		 * TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE;
 		 */
 
-		System.out.println(">>>> ID: " + columns[0]);
+		// System.out.println(">>>> ID: " + columns[0]);
 		EntityProxy.Concept concept;
 		concept = EntityProxy.Concept.make(PublicIds.of(id));
 
 		EntityProxy.Concept descType = null;
 		String term = "";
-
+	
 		// Create description semantics for non-empty fields
 		if (!longCommonName.isEmpty()) {
 			descType = FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
 			term = longCommonName;
+			
+			termConceptMap.put(term, descType);
 		}
 
 		if (!consumerName.isEmpty()) {
 			descType = REGULAR_NAME_DESCRIPTION_TYPE;
 			term = consumerName;
+			
+			termConceptMap.put(term, descType);
 		}
 
 		if (!shortName.isEmpty()) {
 			descType = REGULAR_NAME_DESCRIPTION_TYPE;
 			term = shortName;
+			
+			termConceptMap.put(term, descType);
 		}
 
 		if (!relatedNames2.isEmpty()) {
 			descType = REGULAR_NAME_DESCRIPTION_TYPE;
 			term = relatedNames2;
+			
+			termConceptMap.put(term, descType);
 		}
 
 		if (!displayName.isEmpty()) {
 			descType = REGULAR_NAME_DESCRIPTION_TYPE;
 			term = displayName;
+			
+			termConceptMap.put(term, descType);
 		}
 
 		if (!definitionDescription.isEmpty()) {
 			descType = DEFINITION_DESCRIPTION_TYPE;
 			term = definitionDescription;
+			
+			termConceptMap.put(term, descType);
 		}
 
 		EntityProxy.Concept caseSensitivityConcept = DESCRIPTION_NOT_CASE_SENSITIVE;
@@ -120,9 +143,24 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 		StampCalculator stampCalc = StampCalculatorWithCache
 				.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
 
-		System.out.println(" >>>> TEST CONCEPT >>> " + concept.toString() + term);
-		SemanticRecord entity = EntityService.get().getEntityFast(uuid(concept.toString() + term));
-
+		// System.out.println(" >>>> TEST CONCEPT >>> " + concept.toString() + term);
+		
+		List<SemanticRecord> semanticRecordList = new ArrayList<>();
+		
+		EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.DESCRIPTION_PATTERN.nid(), semanticEntity -> {
+			count++;
+			
+			UUID[] semanticEntityArray = semanticEntity.asUuidArray();
+			
+			// for(int i = 0; i < semanticEntityArray.length; i++) {
+			// 	System.out.println(" >>>> SemanticEntity UUID >>> " + semanticEntityArray[i].toString());
+			// }
+		});
+		
+		SemanticRecord entity =  EntityService.get().getEntityFast(uuid(concept.toString() + term + "DESC"));
+		
+		System.out.println(">>>> SemanticRecord UUID >>> " + uuid(concept.toString() + term + "DESC") + "\n");
+		
 		PatternEntityVersion latestDescriptionPattern = (PatternEntityVersion) Calculators.Stamp.DevelopmentLatest()
 				.latest(TinkarTerm.DESCRIPTION_PATTERN).get();
 		
@@ -138,14 +176,37 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 			String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
 			
 			if (PublicId.equals(descriptionType.publicId(), TinkarTerm.DEFINITION_DESCRIPTION_TYPE)) {
-				return descriptionType.equals(descType) && caseSensitivity.equals(caseSensitivityConcept)
-						&& text.equals(term);
+				return termConceptMapCheck(termConceptMap,descriptionType, caseSensitivity, text);
+				
+				// return descriptionType.equals(descType) && caseSensitivity.equals(caseSensitivityConcept)
+				// 		&& text.equals(term);
+				
 			}
 		}
 
 		return false;
 	}
 
+	private boolean termConceptMapCheck(Map<String, Concept> map, Component descriptionType, Component caseSensitivity, String text) {
+		String term;
+		Concept concept;
+		EntityProxy.Concept caseSensitivityConcept = DESCRIPTION_NOT_CASE_SENSITIVE;
+		boolean matched = false;
+		
+		for (Map.Entry<String, Concept> entry : map.entrySet()) {
+			term = entry.getKey();
+			concept = entry.getValue();
+
+			if (descriptionType.equals(concept) && caseSensitivity.equals(caseSensitivityConcept) 
+					&& text.equals(term)) {
+				matched = true;
+				break;
+			}
+        }
+		
+		return matched;	
+	}
+	
 	private String removeQuotes(String column) {
 		return column.replaceAll("^\"|\"$", "").trim();
 	}
