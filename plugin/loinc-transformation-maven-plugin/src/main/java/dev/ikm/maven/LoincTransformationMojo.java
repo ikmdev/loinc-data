@@ -71,6 +71,8 @@ public class LoincTransformationMojo extends AbstractMojo {
 
     private UUID namespace;
     private ExecutorService executorService;
+    private final String loincAuthorStr = "Regenstrief Institute, Inc. Author";
+    private final EntityProxy.Concept loincAuthor = LoincUtility.makeConceptProxy(namespace, loincAuthorStr);
 
 
     @Override
@@ -355,7 +357,7 @@ public class LoincTransformationMojo extends AbstractMojo {
     private void createLoincPartConcept(PartData partData, Composer composer) {
         State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
 
-        EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace); // Regenstrief Institute, Inc. Author
+        EntityProxy.Concept author = loincAuthor; // Regenstrief Institute, Inc. Author
         EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace); // Loinc Module??
         EntityProxy.Concept path = LoincUtility.getPathConcept(); // Master Path
 
@@ -406,7 +408,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                 state = State.INACTIVE;
             }
 
-            EntityProxy.Concept author = LoincUtility.getAuthorConcept(namespace);
+            EntityProxy.Concept author = loincAuthor;
             EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace);
             EntityProxy.Concept path = LoincUtility.getPathConcept();
 
