@@ -199,24 +199,6 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 		innerCount.set(0);
 		return false;
 	}
-
-	private boolean termConceptMapCheck(Map<UUID, ConceptMapValue> map, Component descriptionType, Component caseSensitivity, String text) {
-		UUID uuid;
-		ConceptMapValue conceptMapValue;
-		EntityProxy.Concept caseSensitivityConcept = DESCRIPTION_NOT_CASE_SENSITIVE;
-		
-		for (Map.Entry<UUID, ConceptMapValue> entry : map.entrySet()) {
-			uuid = entry.getKey();
-			conceptMapValue = entry.getValue();
-
-			if (!descriptionType.equals(conceptMapValue.conceptDescType) || !caseSensitivity.equals(caseSensitivityConcept) 
-					|| !text.equals(conceptMapValue.term)) {
-				return false;
-			}
-        }
-		
-		return true;	
-	}
 	
 	private ConceptMapValue getConceptMapValue(Concept conceptDescType, String term) {
 		return new ConceptMapValue(conceptDescType, term);
