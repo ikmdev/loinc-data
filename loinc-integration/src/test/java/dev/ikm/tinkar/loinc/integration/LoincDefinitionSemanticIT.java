@@ -167,7 +167,6 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 			
 			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
 			UUID semanticEntityUUID = semanticEntity.asUuidArray()[0];
-			// System.out.println("semanticEntity UUID" + semanticEntityUUID.toString());
 			
 			ConceptMapValue cmv = termConceptMap.get(semanticEntityUUID);
 						
@@ -182,21 +181,15 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 					String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
 					
 					//if (PublicId.equals(semanticEntity.publicId(), TinkarTerm.DEFINITION_DESCRIPTION_TYPE.publicId())) {
-		
-					// System.out.println(" >>> MATCHED 1 >>> ");
 						
 					if (descriptionType.equals(cmv.conceptDescType) && caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE) 
 								&& text.equals(cmv.term)) {
 		
 						matched.set(true);
-							
-						// System.out.println(" >>> MATCHED 2 >>> ");
 					}	
 				}
 			} 
 		});
-		
-		// System.out.println(" >>>> BEFORE >>>");
 		
 		if(innerCount.get() == termConceptMap.size()) {
 			innerCount.set(0);
