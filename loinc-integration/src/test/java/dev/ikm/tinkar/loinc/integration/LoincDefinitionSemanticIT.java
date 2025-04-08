@@ -42,8 +42,6 @@ import static dev.ikm.tinkar.terms.TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
-
-	int count = 0;
 	
 	/**
 	 * Test LoincDefinition Loinc.csv Semantics.
@@ -58,8 +56,6 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 
 		String absolutePath = findFilePath(sourceFilePath, "Loinc.csv");
 		int notFound = processLoincFile(absolutePath, errorFile);
-
-		System.out.println(" >>>> COUNT >>> " + count);
 		
 		assertEquals(0, notFound,
 				"Unable to find " + notFound + " Loinc.csv 'Definition' semantics. Details written to " + errorFile);
@@ -89,14 +85,7 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 		String relatedNames2 = removeQuotes(columns[19]);
 		String displayName = removeQuotes(columns[39]);
 		String definitionDescription = removeQuotes(columns[10]);
-		
-		/*
-		 * TinkarTerm.DEFINITION_DESCRIPTION_TYPE;
-		 * TinkarTerm.FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
-		 * TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE;
-		 */
 
-		// System.out.println(">>>> ID: " + columns[0]);
 		EntityProxy.Concept concept;
 		concept = EntityProxy.Concept.make(PublicIds.of(id));
 
@@ -146,14 +135,14 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
 		}
 
-		StateSet active = null;
+		final StateSet active;
 		if (columns[11].equals("ACTIVE") || columns[11].equals("TRIAL") || columns[11].equals("DISCOURAGED")) {
 			active = StateSet.ACTIVE;
 		} else {
 			active = StateSet.INACTIVE;
 		}
 
-		AtomicBoolean matched = new AtomicBoolean(false);
+		AtomicBoolean matched = new AtomicBoolean(true);
 		
 		StampCalculator stampCalc = StampCalculatorWithCache
 				.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
@@ -162,7 +151,6 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 				.latest(TinkarTerm.DESCRIPTION_PATTERN).get();
 		
 		EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.DESCRIPTION_PATTERN.nid(), semanticEntity -> {
-			count++;
 			innerCount.incrementAndGet();
 			
 			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
@@ -179,13 +167,11 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 							.getFieldWithMeaning(TinkarTerm.DESCRIPTION_CASE_SIGNIFICANCE, latest.get());
 					
 					String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
-					
-					//if (PublicId.equals(semanticEntity.publicId(), TinkarTerm.DEFINITION_DESCRIPTION_TYPE.publicId())) {
-						
-					if (descriptionType.equals(cmv.conceptDescType) && caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE) 
-								&& text.equals(cmv.term)) {
+											
+					if (!descriptionType.equals(cmv.conceptDescType) || !caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE) 
+								|| !text.equals(cmv.term)) {
 		
-						matched.set(true);
+						matched.set(false);
 					}	
 				}
 			} 
