@@ -20,7 +20,6 @@
         <module>plugin</module>
         <module>loinc-origin</module>
         <module>loinc-starterdata</module>
-        <!--module>loinc-binding</module-->
         <module>loinc-pipeline</module>
         <module>loinc-owl-transform</module>
         <module>loinc-reasoner</module>
