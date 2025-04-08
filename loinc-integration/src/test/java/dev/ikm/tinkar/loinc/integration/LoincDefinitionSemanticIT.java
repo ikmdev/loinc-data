@@ -17,6 +17,7 @@ import dev.ikm.tinkar.entity.ConceptRecord;
 import dev.ikm.tinkar.entity.ConceptVersionRecord;
 import dev.ikm.tinkar.entity.EntityService;
 import dev.ikm.tinkar.entity.PatternEntityVersion;
+import dev.ikm.tinkar.entity.SemanticEntityVersion;
 import dev.ikm.tinkar.entity.SemanticRecord;
 import dev.ikm.tinkar.entity.SemanticVersionRecord;
 import dev.ikm.tinkar.terms.EntityProxy;
@@ -31,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static dev.ikm.tinkar.terms.TinkarTerm.DEFINITION_DESCRIPTION_TYPE;
 import static dev.ikm.tinkar.terms.TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE;
@@ -62,12 +65,24 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 				"Unable to find " + notFound + " Loinc.csv 'Definition' semantics. Details written to " + errorFile);
 	}
 
+	private class ConceptMapValue { 
+		Concept conceptDescType;
+		String term;
+		
+		ConceptMapValue(Concept conceptDescType, String term) {
+			this.conceptDescType = conceptDescType;
+			this.term = term;
+		}
+	}
+	
 	@Override
 	protected boolean assertLine(String[] columns) {
-		Map<String, Concept> termConceptMap = new HashMap<>();
+		Map<UUID, ConceptMapValue> termConceptMap = new HashMap<>();
 		
 		UUID id = uuid(columns[0]);
 
+		AtomicInteger innerCount = new AtomicInteger(0);
+		
 		String longCommonName = removeQuotes(columns[25]);
 		String consumerName = removeQuotes(columns[12]);
 		String shortName = removeQuotes(columns[20]);
@@ -93,45 +108,43 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 			descType = FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
 			term = longCommonName;
 			
-			termConceptMap.put(term, descType);
+			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
 		}
 
 		if (!consumerName.isEmpty()) {
 			descType = REGULAR_NAME_DESCRIPTION_TYPE;
 			term = consumerName;
 			
-			termConceptMap.put(term, descType);
+			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
 		}
 
 		if (!shortName.isEmpty()) {
 			descType = REGULAR_NAME_DESCRIPTION_TYPE;
 			term = shortName;
 			
-			termConceptMap.put(term, descType);
+			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
 		}
 
 		if (!relatedNames2.isEmpty()) {
 			descType = REGULAR_NAME_DESCRIPTION_TYPE;
 			term = relatedNames2;
 			
-			termConceptMap.put(term, descType);
+			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
 		}
 
 		if (!displayName.isEmpty()) {
 			descType = REGULAR_NAME_DESCRIPTION_TYPE;
 			term = displayName;
 			
-			termConceptMap.put(term, descType);
+			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
 		}
 
 		if (!definitionDescription.isEmpty()) {
 			descType = DEFINITION_DESCRIPTION_TYPE;
 			term = definitionDescription;
 			
-			termConceptMap.put(term, descType);
+			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
 		}
-
-		EntityProxy.Concept caseSensitivityConcept = DESCRIPTION_NOT_CASE_SENSITIVE;
 
 		StateSet active = null;
 		if (columns[11].equals("ACTIVE") || columns[11].equals("TRIAL") || columns[11].equals("DISCOURAGED")) {
@@ -140,71 +153,84 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 			active = StateSet.INACTIVE;
 		}
 
+		AtomicBoolean matched = new AtomicBoolean(false);
+		
 		StampCalculator stampCalc = StampCalculatorWithCache
 				.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
-
-		// System.out.println(" >>>> TEST CONCEPT >>> " + concept.toString() + term);
-		
-		List<SemanticRecord> semanticRecordList = new ArrayList<>();
-		
-		EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.DESCRIPTION_PATTERN.nid(), semanticEntity -> {
-			count++;
-			
-			UUID[] semanticEntityArray = semanticEntity.asUuidArray();
-			
-			// for(int i = 0; i < semanticEntityArray.length; i++) {
-			// 	System.out.println(" >>>> SemanticEntity UUID >>> " + semanticEntityArray[i].toString());
-			// }
-		});
-		
-		SemanticRecord entity =  EntityService.get().getEntityFast(uuid(concept.toString() + term + "DESC"));
-		
-		System.out.println(">>>> SemanticRecord UUID >>> " + uuid(concept.toString() + term + "DESC") + "\n");
 		
 		PatternEntityVersion latestDescriptionPattern = (PatternEntityVersion) Calculators.Stamp.DevelopmentLatest()
 				.latest(TinkarTerm.DESCRIPTION_PATTERN).get();
 		
-		Latest<SemanticVersionRecord> latest = stampCalc.latest(entity);
+		EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.DESCRIPTION_PATTERN.nid(), semanticEntity -> {
+			count++;
+			innerCount.incrementAndGet();
+			
+			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
+			UUID semanticEntityUUID = semanticEntity.asUuidArray()[0];
+			System.out.println("semanticEntity UUID" + semanticEntityUUID.toString());
+			
+			ConceptMapValue cmv = termConceptMap.get(semanticEntityUUID);
+						
+			if(cmv != null) {
+				if (latest.isPresent()) {
+					Component descriptionType = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.DESCRIPTION_TYPE,
+							latest.get());
+					
+					Component caseSensitivity = latestDescriptionPattern
+							.getFieldWithMeaning(TinkarTerm.DESCRIPTION_CASE_SIGNIFICANCE, latest.get());
+					
+					String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
+					
+					//if (PublicId.equals(semanticEntity.publicId(), TinkarTerm.DEFINITION_DESCRIPTION_TYPE.publicId())) {
 		
-		if (latest.isPresent()) {
-			Component descriptionType = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.DESCRIPTION_TYPE,
-					latest.get());
-			
-			Component caseSensitivity = latestDescriptionPattern
-					.getFieldWithMeaning(TinkarTerm.DESCRIPTION_CASE_SIGNIFICANCE, latest.get());
-			
-			String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
-			
-			if (PublicId.equals(descriptionType.publicId(), TinkarTerm.DEFINITION_DESCRIPTION_TYPE)) {
-				return termConceptMapCheck(termConceptMap,descriptionType, caseSensitivity, text);
-				
-				// return descriptionType.equals(descType) && caseSensitivity.equals(caseSensitivityConcept)
-				// 		&& text.equals(term);
-				
-			}
-		}
-
+					// System.out.println(" >>> MATCHED 1 >>> ");
+						
+					if (descriptionType.equals(cmv.conceptDescType) && caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE) 
+								&& text.equals(cmv.term)) {
+		
+						matched.set(true);
+							
+						// System.out.println(" >>> MATCHED 2 >>> ");
+					}	
+				}
+			} 
+		});
+		
+		System.out.println(" >>>> BEFORE >>>");
+		
+		if(innerCount.get() == termConceptMap.size()) {
+			innerCount.set(0);
+			return matched.get();
+		} 
+		
+		innerCount.set(0);
 		return false;
 	}
 
-	private boolean termConceptMapCheck(Map<String, Concept> map, Component descriptionType, Component caseSensitivity, String text) {
-		String term;
-		Concept concept;
+	private boolean termConceptMapCheck(Map<UUID, ConceptMapValue> map, Component descriptionType, Component caseSensitivity, String text) {
+		UUID uuid;
+		ConceptMapValue conceptMapValue;
 		EntityProxy.Concept caseSensitivityConcept = DESCRIPTION_NOT_CASE_SENSITIVE;
-		boolean matched = false;
 		
-		for (Map.Entry<String, Concept> entry : map.entrySet()) {
-			term = entry.getKey();
-			concept = entry.getValue();
+		for (Map.Entry<UUID, ConceptMapValue> entry : map.entrySet()) {
+			uuid = entry.getKey();
+			conceptMapValue = entry.getValue();
 
-			if (descriptionType.equals(concept) && caseSensitivity.equals(caseSensitivityConcept) 
-					&& text.equals(term)) {
-				matched = true;
-				break;
+			if (!descriptionType.equals(conceptMapValue.conceptDescType) || !caseSensitivity.equals(caseSensitivityConcept) 
+					|| !text.equals(conceptMapValue.term)) {
+				return false;
 			}
         }
 		
-		return matched;	
+		return true;	
+	}
+	
+	private ConceptMapValue getConceptMapValue(Concept conceptDescType, String term) {
+		return new ConceptMapValue(conceptDescType, term);
+	}
+	
+	private UUID getConceptMapKey(Concept concept, String term) {
+		return uuid(concept.publicId().asUuidArray()[0] + term + "DESC");
 	}
 	
 	private String removeQuotes(String column) {
