@@ -167,7 +167,7 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 			
 			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
 			UUID semanticEntityUUID = semanticEntity.asUuidArray()[0];
-			System.out.println("semanticEntity UUID" + semanticEntityUUID.toString());
+			// System.out.println("semanticEntity UUID" + semanticEntityUUID.toString());
 			
 			ConceptMapValue cmv = termConceptMap.get(semanticEntityUUID);
 						
@@ -196,7 +196,7 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 			} 
 		});
 		
-		System.out.println(" >>>> BEFORE >>>");
+		// System.out.println(" >>>> BEFORE >>>");
 		
 		if(innerCount.get() == termConceptMap.size()) {
 			innerCount.set(0);
