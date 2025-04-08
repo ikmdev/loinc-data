@@ -7,6 +7,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
+    <groupId>dev.ikm.maven</groupId>
     <artifactId>loinc-reasoner</artifactId>
     <packaging>jar</packaging>
 
@@ -20,7 +21,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>dev.ikm.maven</groupId>
+                <groupId>dev.ikm.maven.tinkar</groupId>
                 <artifactId>tinkar-maven-plugin</artifactId>
                 <executions>
                     <execution>
