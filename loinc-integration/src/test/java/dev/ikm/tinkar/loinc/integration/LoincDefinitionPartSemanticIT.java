@@ -70,20 +70,20 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 
 		AtomicBoolean matched = new AtomicBoolean(true);
 		AtomicInteger innerCount = new AtomicInteger(0);
-		Concept[] descritoionArray = new Concept[2];
+		Concept[] descriptionArray = new Concept[2];
 		
 		
 		// Create description semantics for non-empty fields
 		// FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE; // decriptionType for PartDisplayName
 		// REGULAR_NAME_DESCRIPTION_TYPE;         // decriptionType for PartName
 		if (!partName.isEmpty()) {
-			descritoionArray[0] = REGULAR_NAME_DESCRIPTION_TYPE;
-			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partName), descritoionArray);
+			descriptionArray[0] = REGULAR_NAME_DESCRIPTION_TYPE;
+			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partName), descriptionArray);
 		}	
 		
 		if (!partDisplayName.isEmpty()) {
-			descritoionArray[1] = FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
-			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partDisplayName), descritoionArray);
+			descriptionArray[1] = FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
+			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partDisplayName), descriptionArray);
 		}
 		
 		StampCalculator stampCalc = StampCalculatorWithCache
