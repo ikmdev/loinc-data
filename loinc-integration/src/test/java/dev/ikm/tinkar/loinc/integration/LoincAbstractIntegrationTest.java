@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 public abstract class LoincAbstractIntegrationTest {
     Logger log = LoggerFactory.getLogger(LoincAbstractIntegrationTest.class);
+    static String namespaceString;
 
     @AfterAll
     public static void shutdown() {
@@ -35,6 +36,7 @@ public abstract class LoincAbstractIntegrationTest {
     public static void setup() {
         CachingService.clearAll();
         //Note. Dataset needed to be generated within repo, with command 'mvn clean install'
+        namespaceString = System.getProperty("origin.namespace"); // property set in pom.xml
         File datastore = new File(System.getProperty("datastorePath")); // property set in pom.xml
         ServiceProperties.set(ServiceKeys.DATA_STORE_ROOT, datastore);
         PrimitiveData.selectControllerByName("Open SpinedArrayStore");
@@ -160,7 +162,12 @@ public abstract class LoincAbstractIntegrationTest {
 
     protected UUID uuid(String id) {
 //        return UuidUtil.fromSNOMED(id);
-        return UuidT5Generator.get(UUID.fromString("3094dbd1-60cf-44a6-92e3-0bb32ca4d3de"), id);
+//        return UuidT5Generator.get(UUID.fromString("3094dbd1-60cf-44a6-92e3-0bb32ca4d3de"), id);
+        return UuidT5Generator.get(UUID.fromString(namespaceString), id);
+    }
+
+    protected String removeQuotes(String column) {
+        return column.replaceAll("^\"|\"$", "").trim();
     }
 
     // List of specific part types to filter for
