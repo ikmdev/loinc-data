@@ -53,12 +53,11 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
     protected boolean assertLine(String[] columns) {
         UUID id = uuid(columns[0]);
         
-		Map<UUID, Concept[]> fieldsDescritionTypeMap = new HashMap<>(); // is it PartDisplayName or PartName
+		Map<UUID, Concept[]> fieldsDescriptionTypeMap = new HashMap<>(); // is it PartDisplayName or PartName
         
 		EntityProxy.Concept concept;
 		concept = EntityProxy.Concept.make(PublicIds.of(id));
 
-		String partTypeName = removeQuotes(columns[1]);
 		String partName = removeQuotes(columns[2]);
 		String partDisplayName = removeQuotes(columns[3]);
 			
@@ -79,12 +78,12 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 		// REGULAR_NAME_DESCRIPTION_TYPE;         // decriptionType for PartName
 		if (!partName.isEmpty()) {
 			descritoionArray[0] = REGULAR_NAME_DESCRIPTION_TYPE;
-			fieldsDescritionTypeMap.put(getConceptMapKey(concept, partName), descritoionArray);
+			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partName), descritoionArray);
 		}	
 		
 		if (!partDisplayName.isEmpty()) {
 			descritoionArray[1] = FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
-			fieldsDescritionTypeMap.put(getConceptMapKey(concept, partDisplayName), descritoionArray);
+			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partDisplayName), descritoionArray);
 		}
 		
 		StampCalculator stampCalc = StampCalculatorWithCache
@@ -99,7 +98,7 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
 			UUID semanticEntityUUID = semanticEntity.asUuidArray()[0];
 	
-			Concept[] mapConceptValue = fieldsDescritionTypeMap.get(semanticEntityUUID);
+			Concept[] mapConceptValue = fieldsDescriptionTypeMap.get(semanticEntityUUID);
 			
 			if(mapConceptValue != null) {
 				if (latest.isPresent()) {
@@ -110,16 +109,18 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 					Component caseSensitivity = latestDescriptionPattern
 							.getFieldWithMeaning(TinkarTerm.DESCRIPTION_CASE_SIGNIFICANCE, latest.get());
 														
-					String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
-											
 					if (!(descriptionType.equals(mapConceptValue[0]) || descriptionType.equals(mapConceptValue[1])) || !caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE)) {
 						matched.set(false);
 					}	
+				} else {
+					matched.set(false);
 				}
-			} 		
+			} else {
+				matched.set(false);
+			}
 		});	
 
-		if(innerCount.get() == fieldsDescritionTypeMap.size()) {
+		if(innerCount.get() == fieldsDescriptionTypeMap.size()) {
 			innerCount.set(0);
 			return matched.get();
 		} 
