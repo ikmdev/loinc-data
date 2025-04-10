@@ -77,6 +77,7 @@
                 <configuration>
                     <systemPropertyVariables>
                         <datastorePath>${user.home}/Solor/generated-data</datastorePath>
+                        <origin.namespace>${origin.namespace}</origin.namespace>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

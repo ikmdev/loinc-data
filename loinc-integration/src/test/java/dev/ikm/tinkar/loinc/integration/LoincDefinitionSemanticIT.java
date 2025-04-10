@@ -193,8 +193,5 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 	private UUID getConceptMapKey(Concept concept, String term) {
 		return uuid(concept.publicId().asUuidArray()[0] + term + "DESC");
 	}
-	
-	private String removeQuotes(String column) {
-		return column.replaceAll("^\"|\"$", "").trim();
-	}
+
 }
