@@ -11,9 +11,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LoincUtility {
-    private static final Logger LOG = LoggerFactory.getLogger(LoincTransformationMojo.class.getSimpleName());
-    private static final String loincAuthorStr = "Regenstrief Institute, Inc. Author";
-
     public static final String LOINC_TRIAL_STATUS_PATTERN = "LOINC Trial Status Pattern";
     public static final String LOINC_DISCOURAGED_STATUS_PATTERN = "LOINC Discouraged Status Pattern";
     public static final String LOINC_CLASS_PATTERN = "LOINC Class Pattern";
@@ -23,15 +20,6 @@ public class LoincUtility {
     public static final String TEST_ORDERABLE_MEMBERSHIP_PATTERN = "Test Orderable Membership Pattern";
 
     public static final Map<String, String> partCache = new ConcurrentHashMap<>();
-
-    /**
-     * retrieves user concept
-     * @return the snomed author
-     */
-    public static EntityProxy.Concept getAuthorConcept(UUID namespace){
-        EntityProxy.Concept loincAuthor = EntityProxy.Concept.make(loincAuthorStr, UuidT5Generator.get(namespace,(loincAuthorStr)));
-        return loincAuthor;
-    }
 
     public static EntityProxy.Pattern getLoincTrialStatusPattern(UUID namespace){
         return makePatternProxy(namespace, LOINC_TRIAL_STATUS_PATTERN);
