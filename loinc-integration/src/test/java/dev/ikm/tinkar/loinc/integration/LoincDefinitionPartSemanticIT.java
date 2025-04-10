@@ -33,13 +33,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest {
 	
 	/**
-	 * Test LoincDefinition Loinc.csv Semantics.
+	 * Test LoincDefinitionPart Loinc.csv Semantics.
 	 *
 	 * @result Reads content from file and validates Concept of Semantics by calling
 	 *         private method assertConcept().
 	 */
 	@Test
-	public void testLoincDefinitionSemantics() throws IOException {
+	public void testLoincDefinitionPartSemantics() throws IOException {
         String sourceFilePath = "../loinc-origin/target/origin-sources";
         String errorFile = "target/failsafe-reports/PartCsv_not_found.txt";
 
