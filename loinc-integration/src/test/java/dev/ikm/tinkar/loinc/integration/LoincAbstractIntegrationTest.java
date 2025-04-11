@@ -182,7 +182,7 @@ public abstract class LoincAbstractIntegrationTest {
             "CLASS"
     );
 
-    protected class ConceptMapValue {
+    protected static class ConceptMapValue {
         EntityProxy.Concept conceptDescType;
         String term;
 
