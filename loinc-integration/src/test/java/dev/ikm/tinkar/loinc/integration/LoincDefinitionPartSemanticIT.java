@@ -49,11 +49,21 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
         assertEquals(0, notFound, "Unable to find " + notFound + " Part.csv semantics. Details written to " + errorFile);
 	}
 	
+	private class ConceptMapValue { 
+		Concept conceptDescType;
+		String term;
+		
+		ConceptMapValue(Concept conceptDescType, String term) {
+			this.conceptDescType = conceptDescType;
+			this.term = term;
+		}
+	}
+	
     @Override
     protected boolean assertLine(String[] columns) {
         UUID id = uuid(columns[0]);
         
-		Map<UUID, Concept[]> fieldsDescriptionTypeMap = new HashMap<>(); // is it PartDisplayName or PartName
+		Map<Map<String, UUID>, ConceptMapValue> fieldsDescriptionTypeMap = new HashMap<>(); // is it PartDisplayName or PartName
         
 		EntityProxy.Concept concept;
 		concept = EntityProxy.Concept.make(PublicIds.of(id));
@@ -76,14 +86,14 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 		// Create description semantics for non-empty fields
 		// FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE; // decriptionType for PartDisplayName
 		// REGULAR_NAME_DESCRIPTION_TYPE;         // decriptionType for PartName
+		
+		Map<String, ConceptMapValue> conceptMap = new HashMap();
 		if (!partName.isEmpty()) {
-			descriptionArray[0] = REGULAR_NAME_DESCRIPTION_TYPE;
-			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partName), descriptionArray);
+			conceptMap.put("REGULAR_NAME_DESCRIPTION_TYPE", getConceptMapValue(REGULAR_NAME_DESCRIPTION_TYPE, partName));
 		}	
 		
 		if (!partDisplayName.isEmpty()) {
-			descriptionArray[1] = FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
-			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partDisplayName), descriptionArray);
+			conceptMap.put("FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE", getConceptMapValue(FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE, partDisplayName));			
 		}
 		
 		StampCalculator stampCalc = StampCalculatorWithCache
@@ -96,11 +106,12 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 			innerCount.incrementAndGet();
 			
 			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
-			UUID semanticEntityUUID = semanticEntity.asUuidArray()[0];
-	
-			Concept[] mapConceptValue = fieldsDescriptionTypeMap.get(semanticEntityUUID);
 			
-			if(mapConceptValue != null) {
+			ConceptMapValue regularNameConceptMapValue = conceptMap.get("REGULAR_NAME_DESCRIPTION_TYPE");
+			ConceptMapValue fullNameConceptMapValue = conceptMap.get("FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE");
+			
+			
+			if(regularNameConceptMapValue != null && fullNameConceptMapValue != null) {
 				if (latest.isPresent()) {
 					
 					Component descriptionType = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.DESCRIPTION_TYPE,
@@ -108,8 +119,11 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 												
 					Component caseSensitivity = latestDescriptionPattern
 							.getFieldWithMeaning(TinkarTerm.DESCRIPTION_CASE_SIGNIFICANCE, latest.get());
+					
+					String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
 														
-					if (!(descriptionType.equals(mapConceptValue[0]) || descriptionType.equals(mapConceptValue[1])) || !caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE)) {
+					if ( (!descriptionType.equals(regularNameConceptMapValue.conceptDescType) || !caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE) || !text.equals(regularNameConceptMapValue.term)) 
+							&& (!descriptionType.equals(fullNameConceptMapValue.conceptDescType) || !caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE) || !text.equals(fullNameConceptMapValue.term))) {
 						matched.set(false);
 					}	
 				} else {
@@ -119,14 +133,9 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 				matched.set(false);
 			}
 		});	
-
-		if(innerCount.get() == fieldsDescriptionTypeMap.size()) {
-			innerCount.set(0);
-			return matched.get();
-		} 
 		
 		innerCount.set(0);
-		return false;
+		return matched.get();
     }
     
 	private UUID getConceptMapKey(Concept concept, String term) {
@@ -135,5 +144,9 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
     
 	private String removeQuotes(String column) {
 		return column.replaceAll("^\"|\"$", "").trim();
+	}
+	
+	private ConceptMapValue getConceptMapValue(Concept conceptDescType, String term) {
+		return new ConceptMapValue(conceptDescType, term);
 	}
 }
