@@ -62,9 +62,7 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
     @Override
     protected boolean assertLine(String[] columns) {
         UUID id = uuid(columns[0]);
-        
-		Map<Map<String, UUID>, ConceptMapValue> fieldsDescriptionTypeMap = new HashMap<>(); // is it PartDisplayName or PartName
-        
+                
 		EntityProxy.Concept concept;
 		concept = EntityProxy.Concept.make(PublicIds.of(id));
 
@@ -80,8 +78,6 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 
 		AtomicBoolean matched = new AtomicBoolean(true);
 		AtomicInteger innerCount = new AtomicInteger(0);
-		Concept[] descriptionArray = new Concept[2];
-		
 		
 		// Create description semantics for non-empty fields
 		// FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE; // decriptionType for PartDisplayName
@@ -137,10 +133,6 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 		innerCount.set(0);
 		return matched.get();
     }
-    
-	private UUID getConceptMapKey(Concept concept, String term) {
-		return uuid(concept.publicId().asUuidArray()[0] + term + "DESC");
-	}
     
 	private String removeQuotes(String column) {
 		return column.replaceAll("^\"|\"$", "").trim();
