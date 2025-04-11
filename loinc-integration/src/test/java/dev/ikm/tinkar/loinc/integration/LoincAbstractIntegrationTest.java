@@ -5,6 +5,7 @@ import dev.ikm.tinkar.common.service.PrimitiveData;
 import dev.ikm.tinkar.common.service.ServiceKeys;
 import dev.ikm.tinkar.common.service.ServiceProperties;
 import dev.ikm.tinkar.common.util.uuid.UuidT5Generator;
+import dev.ikm.tinkar.terms.EntityProxy;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
@@ -180,6 +181,16 @@ public abstract class LoincAbstractIntegrationTest {
             "METHOD",
             "CLASS"
     );
+
+    protected class ConceptMapValue {
+        EntityProxy.Concept conceptDescType;
+        String term;
+
+        ConceptMapValue(EntityProxy.Concept conceptDescType, String term) {
+            this.conceptDescType = conceptDescType;
+            this.term = term;
+        }
+    }
 
     protected abstract boolean assertLine(String[] columns);
 }

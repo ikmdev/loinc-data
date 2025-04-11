@@ -61,16 +61,6 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 				"Unable to find " + notFound + " Loinc.csv 'Definition' semantics. Details written to " + errorFile);
 	}
 
-	private class ConceptMapValue { 
-		Concept conceptDescType;
-		String term;
-		
-		ConceptMapValue(Concept conceptDescType, String term) {
-			this.conceptDescType = conceptDescType;
-			this.term = term;
-		}
-	}
-	
 	@Override
 	protected boolean assertLine(String[] columns) {
 		Map<UUID, ConceptMapValue> termConceptMap = new HashMap<>();
@@ -86,53 +76,31 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 		String displayName = removeQuotes(columns[39]);
 		String definitionDescription = removeQuotes(columns[10]);
 
-		EntityProxy.Concept concept;
-		concept = EntityProxy.Concept.make(PublicIds.of(id));
+		EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(id));
 
-		EntityProxy.Concept descType = null;
-		String term = "";
-	
 		// Create description semantics for non-empty fields
 		if (!longCommonName.isEmpty()) {
-			descType = FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
-			term = longCommonName;
-			
-			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
+			termConceptMap.put(getConceptMapKey(concept, longCommonName, "FQN"), getConceptMapValue(FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE, longCommonName));
 		}
 
 		if (!consumerName.isEmpty()) {
-			descType = REGULAR_NAME_DESCRIPTION_TYPE;
-			term = consumerName;
-			
-			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
+			termConceptMap.put(getConceptMapKey(concept, consumerName, "Regular"), getConceptMapValue(REGULAR_NAME_DESCRIPTION_TYPE, consumerName));
 		}
 
 		if (!shortName.isEmpty()) {
-			descType = REGULAR_NAME_DESCRIPTION_TYPE;
-			term = shortName;
-			
-			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
+			termConceptMap.put(getConceptMapKey(concept, shortName, "Regular"), getConceptMapValue(REGULAR_NAME_DESCRIPTION_TYPE, shortName));
 		}
 
 		if (!relatedNames2.isEmpty()) {
-			descType = REGULAR_NAME_DESCRIPTION_TYPE;
-			term = relatedNames2;
-			
-			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
+			termConceptMap.put(getConceptMapKey(concept, relatedNames2, "Regular"), getConceptMapValue(REGULAR_NAME_DESCRIPTION_TYPE, relatedNames2));
 		}
 
 		if (!displayName.isEmpty()) {
-			descType = REGULAR_NAME_DESCRIPTION_TYPE;
-			term = displayName;
-			
-			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
+			termConceptMap.put(getConceptMapKey(concept, displayName, "Regular"), getConceptMapValue(REGULAR_NAME_DESCRIPTION_TYPE, displayName));
 		}
 
 		if (!definitionDescription.isEmpty()) {
-			descType = DEFINITION_DESCRIPTION_TYPE;
-			term = definitionDescription;
-			
-			termConceptMap.put(getConceptMapKey(concept, term), getConceptMapValue(descType, term));
+			termConceptMap.put(getConceptMapKey(concept, definitionDescription, "Definition"), getConceptMapValue(DEFINITION_DESCRIPTION_TYPE, definitionDescription));
 		}
 
 		final StateSet active;
@@ -190,8 +158,8 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 		return new ConceptMapValue(conceptDescType, term);
 	}
 	
-	private UUID getConceptMapKey(Concept concept, String term) {
-		return uuid(concept.publicId().asUuidArray()[0] + term + "DESC");
+	private UUID getConceptMapKey(Concept concept, String term, String typeStr) {
+		return uuid(concept.publicId().asUuidArray()[0] + term + typeStr + "DESC");
 	}
 
 }
