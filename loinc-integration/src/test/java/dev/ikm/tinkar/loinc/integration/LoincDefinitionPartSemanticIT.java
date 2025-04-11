@@ -53,10 +53,9 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
     protected boolean assertLine(String[] columns) {
         UUID id = uuid(columns[0]);
         
-		Map<UUID, Concept[]> fieldsDescriptionTypeMap = new HashMap<>(); // is it PartDisplayName or PartName
+		Map<UUID, ConceptMapValue> termConceptMap = new HashMap<>(); // is it PartDisplayName or PartName
         
-		EntityProxy.Concept concept;
-		concept = EntityProxy.Concept.make(PublicIds.of(id));
+		EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(id));
 
 		String partName = removeQuotes(columns[2]);
 		String partDisplayName = removeQuotes(columns[3]);
@@ -70,20 +69,16 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 
 		AtomicBoolean matched = new AtomicBoolean(true);
 		AtomicInteger innerCount = new AtomicInteger(0);
-		Concept[] descriptionArray = new Concept[2];
-		
-		
+
 		// Create description semantics for non-empty fields
 		// FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE; // decriptionType for PartDisplayName
 		// REGULAR_NAME_DESCRIPTION_TYPE;         // decriptionType for PartName
 		if (!partName.isEmpty()) {
-			descriptionArray[0] = REGULAR_NAME_DESCRIPTION_TYPE;
-			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partName), descriptionArray);
+			termConceptMap.put(getConceptMapKey(concept, partName, "Regular"), getConceptMapValue(REGULAR_NAME_DESCRIPTION_TYPE, partName));
 		}	
 		
 		if (!partDisplayName.isEmpty()) {
-			descriptionArray[1] = FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
-			fieldsDescriptionTypeMap.put(getConceptMapKey(concept, partDisplayName), descriptionArray);
+			termConceptMap.put(getConceptMapKey(concept, partDisplayName, "FQN"), getConceptMapValue(FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE, partDisplayName));
 		}
 		
 		StampCalculator stampCalc = StampCalculatorWithCache
@@ -98,9 +93,9 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
 			UUID semanticEntityUUID = semanticEntity.asUuidArray()[0];
 	
-			Concept[] mapConceptValue = fieldsDescriptionTypeMap.get(semanticEntityUUID);
+			ConceptMapValue cmv = termConceptMap.get(semanticEntityUUID);
 			
-			if(mapConceptValue != null) {
+			if(cmv != null) {
 				if (latest.isPresent()) {
 					
 					Component descriptionType = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.DESCRIPTION_TYPE,
@@ -108,10 +103,14 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 												
 					Component caseSensitivity = latestDescriptionPattern
 							.getFieldWithMeaning(TinkarTerm.DESCRIPTION_CASE_SIGNIFICANCE, latest.get());
-														
-					if (!(descriptionType.equals(mapConceptValue[0]) || descriptionType.equals(mapConceptValue[1])) || !caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE)) {
+
+					String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
+
+					if (!descriptionType.equals(cmv.conceptDescType) || !caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE)
+							|| !text.equals(cmv.term)) {
+
 						matched.set(false);
-					}	
+					}
 				} else {
 					matched.set(false);
 				}
@@ -120,20 +119,17 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 			}
 		});	
 
-		if(innerCount.get() == fieldsDescriptionTypeMap.size()) {
-			innerCount.set(0);
+		if(innerCount.get() == termConceptMap.size()) {
 			return matched.get();
 		} 
 		
-		innerCount.set(0);
 		return false;
     }
-    
-	private UUID getConceptMapKey(Concept concept, String term) {
-		return uuid(concept.publicId().asUuidArray()[0] + term + "DESC");
+	private ConceptMapValue getConceptMapValue(Concept conceptDescType, String term) {
+		return new ConceptMapValue(conceptDescType, term);
 	}
-    
-	private String removeQuotes(String column) {
-		return column.replaceAll("^\"|\"$", "").trim();
+
+	private UUID getConceptMapKey(Concept concept, String term, String typeStr) {
+		return uuid(concept.publicId().asUuidArray()[0] + term + typeStr + "DESC");
 	}
 }

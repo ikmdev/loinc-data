@@ -10,13 +10,9 @@ import dev.ikm.tinkar.composer.Composer;
 import dev.ikm.tinkar.composer.Session;
 import dev.ikm.tinkar.composer.assembler.ConceptAssembler;
 import dev.ikm.tinkar.composer.assembler.SemanticAssembler;
-import dev.ikm.tinkar.composer.template.FullyQualifiedName;
-import dev.ikm.tinkar.composer.template.Synonym;
-import dev.ikm.tinkar.composer.template.Identifier;
 import dev.ikm.tinkar.composer.template.AxiomSyntax;
 import dev.ikm.tinkar.composer.template.USDialect;
 import dev.ikm.tinkar.composer.template.StatedAxiom;
-import dev.ikm.tinkar.entity.Entity;
 import dev.ikm.tinkar.entity.EntityService;
 
 import dev.ikm.tinkar.terms.EntityProxy;
@@ -32,10 +28,18 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
@@ -521,7 +525,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                 descriptionType.equals(TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE) ? "Regular" : "Definition";
 
         EntityProxy.Semantic semantic = EntityProxy.Semantic.make(
-                PublicIds.of(UuidT5Generator.get(namespace, concept.publicId().asUuidArray()[0] + description + "DESC")));
+                PublicIds.of(UuidT5Generator.get(namespace, concept.publicId().asUuidArray()[0] + description + typeStr + "DESC")));
 
         try {
             session.compose((SemanticAssembler semanticAssembler) -> semanticAssembler
