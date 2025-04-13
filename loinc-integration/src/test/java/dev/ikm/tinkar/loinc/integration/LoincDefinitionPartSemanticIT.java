@@ -50,7 +50,7 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 	}
 	
     @Override
-    protected boolean assertLine(String[] columns) {
+    protected boolean assertLinePart(String[] columns) {
         UUID id = uuid(columns[0]);
         
 		Map<UUID, ConceptMapValue> termConceptMap = new HashMap<>(); // is it PartDisplayName or PartName
@@ -131,5 +131,11 @@ public class LoincDefinitionPartSemanticIT extends LoincAbstractIntegrationTest 
 
 	private UUID getConceptMapKey(Concept concept, String term, String typeStr) {
 		return uuid(concept.publicId().asUuidArray()[0] + term + typeStr + "DESC");
+	}
+
+	@Override
+	protected boolean assertLine(String[] columns) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }

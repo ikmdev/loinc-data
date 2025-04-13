@@ -1,6 +1,7 @@
 package dev.ikm.tinkar.loinc.integration;
 
 import dev.ikm.maven.LoincUtility;
+import dev.ikm.tinkar.common.id.PublicIds;
 import dev.ikm.tinkar.common.util.uuid.UuidUtil;
 import dev.ikm.tinkar.coordinate.Calculators;
 import dev.ikm.tinkar.coordinate.Coordinates;
@@ -13,24 +14,47 @@ import dev.ikm.tinkar.entity.ConceptRecord;
 import dev.ikm.tinkar.entity.ConceptVersionRecord;
 import dev.ikm.tinkar.entity.EntityService;
 import dev.ikm.tinkar.entity.PatternEntityVersion;
+import dev.ikm.tinkar.entity.SemanticEntityVersion;
 import dev.ikm.tinkar.entity.SemanticRecord;
 import dev.ikm.tinkar.entity.SemanticVersionRecord;
+import dev.ikm.tinkar.loinc.integration.LoincAbstractIntegrationTest.ConceptMapValue;
+import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.TinkarTerm;
+
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@TestInstance(Lifecycle.PER_CLASS)
 public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
+	@BeforeAll
+    @Test
+    public void testLoincAxiomSemanticsPartSemantics() throws IOException {
+        String sourceFilePath = "../loinc-origin/target/origin-sources";
+        String errorFile = "target/failsafe-reports/PartCsv_not_found.txt";
+
+        String absolutePath = findFilePath(sourceFilePath, "Part.csv");
+        int notFound = processPartFile(absolutePath, errorFile);
+
+        assertEquals(0, notFound, "Unable to find " + notFound + " Part.csv semantics. Details written to " + errorFile);
+    }
+	
     /**
      * Test LoincAxiom Loinc.csv Semantics.
      *
      * @result Reads content from file and validates Concept of Semantics by calling private method assertConcept().
      */
-//    @Test
+    @Test
     public void testLoincAxiomSemantics() throws IOException {
         String sourceFilePath = "../loinc-origin/target/origin-sources";
         String errorFile = "target/failsafe-reports/LoincCsv_axioms_not_found.txt";
@@ -40,7 +64,52 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
         assertEquals(0, notFound, "Unable to find " + notFound + " Loinc.csv 'Axiom' semantics. Details written to " + errorFile);
     }
+    
+    @Override
+    protected boolean assertLinePart(String[] columns) {
+        UUID id = uuid(columns[0]);
+        
+		Map<UUID, ConceptMapValue> termConceptMap = new HashMap<>(); 
+        
+		EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(id));
 
+		String partNumber = removeQuotes(columns[0]);
+		String partTypeName = removeQuotes(columns[1]);
+		String partName = removeQuotes(columns[2]);
+	
+		LoincUtility.addPartToCache(partName, partTypeName, partNumber);
+		
+		UUID uuidAxiom = uuid((concept.publicId().asUuidArray()[0] + partTypeName + "AXIOM"));
+	
+		final StateSet active;
+		if (columns[4].equals("ACTIVE") || columns[4].equals("TRIAL") || columns[4].equals("DISCOURAGED")) {
+			active = StateSet.ACTIVE;
+		} else {
+			active = StateSet.INACTIVE;
+		}
+		
+		AtomicBoolean matched = new AtomicBoolean(false);
+		
+		StampCalculator stampCalc = StampCalculatorWithCache
+				.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
+	
+		PatternEntityVersion latestDescriptionPattern = (PatternEntityVersion) Calculators.Stamp.DevelopmentLatest()
+				.latest(TinkarTerm.DESCRIPTION_PATTERN).get();
+        
+		// NOT SURE if this part (forEach loop) is necessary since semanticEntity might not be needed for IT's logic
+		EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.DESCRIPTION_PATTERN.nid(), semanticEntity -> {
+			
+			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
+			UUID semanticEntityUUID = semanticEntity.asUuidArray()[0];
+			
+			if(latest.isPresent())  {
+				matched.set(true);
+			} 
+		});	
+		
+		return matched.get();
+    }
+    
     @Override
     protected boolean assertLine(String[] columns) {
         String loincNum = columns[0]; // LOINC_NUM

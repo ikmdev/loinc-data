@@ -162,4 +162,10 @@ public class LoincDefinitionSemanticIT extends LoincAbstractIntegrationTest {
 		return uuid(concept.publicId().asUuidArray()[0] + term + typeStr + "DESC");
 	}
 
+	@Override
+	protected boolean assertLinePart(String[] columns) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

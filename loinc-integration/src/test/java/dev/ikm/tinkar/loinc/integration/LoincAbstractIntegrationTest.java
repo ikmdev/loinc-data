@@ -149,7 +149,7 @@ public abstract class LoincAbstractIntegrationTest {
 
                 //Only process rows with the target PartTypeName Transformed. Otherwise, null Entity is returned.
                 if (TARGET_PART_TYPES.contains(columns[1])) {
-                    if (!assertLine(columns)) {
+                    if (!assertLinePart(columns)) {
                         notFound++;
                         bw.write(line);
                         bw.newLine();
@@ -193,4 +193,5 @@ public abstract class LoincAbstractIntegrationTest {
     }
 
     protected abstract boolean assertLine(String[] columns);
+    protected abstract boolean assertLinePart(String[] columns);
 }
