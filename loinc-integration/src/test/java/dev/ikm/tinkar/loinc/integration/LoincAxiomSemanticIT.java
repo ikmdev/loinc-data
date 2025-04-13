@@ -39,7 +39,7 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
 	@BeforeAll
     @Test
-    public void testLoincAxiomSemanticsPartSemantics() throws IOException {
+    public void testLoincAxiomSemanticsPart() throws IOException {
         String sourceFilePath = "../loinc-origin/target/origin-sources";
         String errorFile = "target/failsafe-reports/PartCsv_not_found.txt";
 
