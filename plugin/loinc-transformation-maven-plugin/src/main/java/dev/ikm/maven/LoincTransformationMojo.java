@@ -604,8 +604,8 @@ public class LoincTransformationMojo extends AbstractMojo {
                                           String loincClass, String loincClassType) {
         EntityProxy.Pattern loinClassPattern = LoincUtility.getLoincClassPattern(namespace);
         int classTypeInt = Integer.parseInt(loincClassType);
-        String loinClassPartNumber = LoincUtility.getPartNumberFromCache(loincClass.toLowerCase(), "CLASS");
-        EntityProxy.Concept loincClassPartConcept = LoincUtility.makeConceptProxy(namespace, loinClassPartNumber);
+        String loincClassPartNumber = LoincUtility.getPartNumberFromCache(loincClass.toLowerCase(), "CLASS");
+        EntityProxy.Concept loincClassPartConcept = LoincUtility.makeConceptProxy(namespace, loincClassPartNumber);
         try {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.publicId().asUuidArray()[0] + loincClass))))
