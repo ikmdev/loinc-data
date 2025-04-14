@@ -35,7 +35,7 @@ public class LoincConceptPartSemanticIT extends LoincAbstractIntegrationTest {
     }
 
     @Override
-    protected boolean assertLine(String[] columns) {
+    protected boolean assertLinePart(String[] columns) {
         UUID id = uuid(columns[0]);
         StateSet state = columns[4].equals("ACTIVE") ? StateSet.ACTIVE : StateSet.INACTIVE;
 
@@ -45,4 +45,10 @@ public class LoincConceptPartSemanticIT extends LoincAbstractIntegrationTest {
 
         return latest.isPresent();
     }
+
+	@Override
+	protected boolean assertLine(String[] columns) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }
