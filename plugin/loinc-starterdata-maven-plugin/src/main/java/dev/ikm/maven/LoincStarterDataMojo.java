@@ -48,7 +48,7 @@ import static dev.ikm.tinkar.terms.TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE;
 import static dev.ikm.tinkar.terms.TinkarTerm.MEMBERSHIP_SEMANTIC;
 import static dev.ikm.tinkar.terms.TinkarTerm.STRING;
 import static dev.ikm.tinkar.terms.TinkarTerm.PREFERRED;
-import static dev.ikm.tinkar.terms.TinkarTerm.CASE_SENSITIVE_EVALUATION;
+import static dev.ikm.tinkar.terms.TinkarTerm.INTEGER_FIELD;
 import static dev.ikm.tinkar.terms.TinkarTerm.UNIVERSALLY_UNIQUE_IDENTIFIER;
 
 @Mojo(name = "run-loinc-starterdata", defaultPhase = LifecyclePhase.INSTALL)
@@ -295,7 +295,12 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept trialStatus = makeConceptProxy(trialStatusStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(LOINC_TRIAL_STATUS_PATTERN))
                         .meaning(trialStatus)
-                        .purpose(STATUS_VALUE))
+                        .purpose(STATUS_VALUE)
+                        .fieldDefinition(trialStatus, STATUS_VALUE, STRING))
+                        .attach((FullyQualifiedName fqn) -> fqn
+                                .text("Trial Status Pattern")
+                                .language(ENGLISH_LANGUAGE)
+                                .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE))
                         .attach((Synonym synonym) -> synonym
                                 .text("Trial Status Pattern")
                                 .language(ENGLISH_LANGUAGE)
@@ -305,7 +310,12 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept discouragedStatus = makeConceptProxy(discouragedStatusStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(LOINC_DISCOURAGED_STATUS_PATTERN))
                 .meaning(discouragedStatus)
-                .purpose(STATUS_VALUE))
+                .purpose(STATUS_VALUE)
+                        .fieldDefinition(discouragedStatus, STATUS_VALUE, STRING))
+                .attach((FullyQualifiedName fqn) -> fqn
+                        .text("Discouraged Status Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE))
                 .attach((Synonym synonym) -> synonym
                         .text("Discouraged Status Pattern")
                         .language(ENGLISH_LANGUAGE)
@@ -325,7 +335,11 @@ public class LoincStarterDataMojo extends AbstractMojo {
                         .fieldDefinition(
                                 loincClassType,
                                 loincClassType,
-                                COMPONENT_FIELD))
+                                INTEGER_FIELD))
+                .attach((FullyQualifiedName fqn) -> fqn
+                        .text("LOINC ClassType Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE))
                 .attach((Synonym synonym) -> synonym
                         .text("LOINC ClassType Pattern")
                         .language(ENGLISH_LANGUAGE)
@@ -340,6 +354,10 @@ public class LoincStarterDataMojo extends AbstractMojo {
                         exampleUnits,
                         exampleUnits,
                         STRING))
+                .attach((FullyQualifiedName fqn) -> fqn
+                        .text("Example Units (UCUM) Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE))
                 .attach((Synonym synonym) -> synonym
                         .text("Example Units (UCUM) Pattern")
                         .language(ENGLISH_LANGUAGE)
@@ -349,7 +367,11 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept orderable = makeConceptProxy(orderableStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_ORDERABLE_MEMBERSHIP_PATTERN))
                 .meaning(orderable)
-                .purpose(MEMBERSHIP_SEMANTIC))
+                .purpose(MEMBERSHIP_SEMANTIC).fieldDefinition(orderable, MEMBERSHIP_SEMANTIC, STRING))
+                .attach((FullyQualifiedName fqn) -> fqn
+                        .text("Test Orderable Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE))
                 .attach((Synonym synonym) -> synonym
                         .text("Test Orderable Pattern")
                         .language(ENGLISH_LANGUAGE)
@@ -359,17 +381,25 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept reportable = makeConceptProxy(reportableStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_REPORTABLE_MEMBERSHIP_PATTERN))
                 .meaning(reportable)
-                .purpose(MEMBERSHIP_SEMANTIC))
+                .purpose(MEMBERSHIP_SEMANTIC).fieldDefinition(reportable, MEMBERSHIP_SEMANTIC, STRING))
+                .attach((FullyQualifiedName fqn) -> fqn
+                        .text("Test Reportable Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE))
                 .attach((Synonym synonym) -> synonym
                         .text("Test Reportable Pattern")
                         .language(ENGLISH_LANGUAGE)
-                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE));;
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE));
 
         String testSubsetStr = "Test Subset";
         EntityProxy.Concept testSubset = makeConceptProxy(testSubsetStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_SUBSET_MEMBERSHIP_PATTERN))
                 .meaning(testSubset)
-                .purpose(MEMBERSHIP_SEMANTIC))
+                .purpose(MEMBERSHIP_SEMANTIC).fieldDefinition(testSubset, MEMBERSHIP_SEMANTIC, STRING))
+                .attach((FullyQualifiedName fqn) -> fqn
+                        .text("Test Subset Membership Pattern")
+                        .language(ENGLISH_LANGUAGE)
+                        .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE))
                 .attach((Synonym synonym) -> synonym
                         .text("Test Subset Membership Pattern")
                         .language(ENGLISH_LANGUAGE)

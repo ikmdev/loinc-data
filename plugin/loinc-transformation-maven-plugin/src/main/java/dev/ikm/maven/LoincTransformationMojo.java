@@ -603,14 +603,17 @@ public class LoincTransformationMojo extends AbstractMojo {
     private void createLoincClassSemantic(Session session, EntityProxy.Concept concept,
                                           String loincClass, String loincClassType) {
         EntityProxy.Pattern loinClassPattern = LoincUtility.getLoincClassPattern(namespace);
+        int classTypeInt = Integer.parseInt(loincClassType);
+        String loinClassPartNumber = LoincUtility.getPartNumberFromCache(loincClass.toLowerCase(), "CLASS");
+        EntityProxy.Concept loincClassPartConcept = LoincUtility.makeConceptProxy(namespace, loinClassPartNumber);
         try {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, concept.publicId().asUuidArray()[0] + loincClass))))
                         .reference(concept)
                         .pattern(loinClassPattern)
                         .fieldValues(fv -> fv
-                                .with(loincClass)
-                                .with(loincClassType)
+                                .with(loincClassPartConcept)
+                                .with(classTypeInt)
                         );
             });
         } catch (Exception e) {
