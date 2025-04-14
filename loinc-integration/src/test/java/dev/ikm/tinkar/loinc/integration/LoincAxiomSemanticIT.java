@@ -3,6 +3,7 @@ package dev.ikm.tinkar.loinc.integration;
 import dev.ikm.maven.LoincUtility;
 import dev.ikm.tinkar.common.id.PublicIds;
 import dev.ikm.tinkar.common.util.uuid.UuidUtil;
+import dev.ikm.tinkar.component.Component;
 import dev.ikm.tinkar.coordinate.Calculators;
 import dev.ikm.tinkar.coordinate.Coordinates;
 import dev.ikm.tinkar.coordinate.stamp.StampCoordinateRecord;
@@ -32,11 +33,17 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static dev.ikm.tinkar.terms.TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
+    /**
+     * Test PartAxiom Part.csv Semantics.
+     *
+     * @result Reads content from file and validates Concept of Semantics by calling private method assertLinePart().
+     */	
 	@BeforeAll
     @Test
     public void testLoincAxiomSemanticsPart() throws IOException {
@@ -77,8 +84,8 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 		String partTypeName = removeQuotes(columns[1]);
 		String partName = removeQuotes(columns[2]);
 	
-		LoincUtility.addPartToCache(partName, partTypeName, partNumber);
-		
+		LoincUtility.addPartToCache(partName.toLowerCase(), partTypeName, partNumber);
+
 		UUID uuidAxiom = uuid((concept.publicId().asUuidArray()[0] + partTypeName + "AXIOM"));
 	
 		final StateSet active;
@@ -130,25 +137,30 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
         String methodType = removeQuotes(columns[6]); // METHOD_TYP
 
         StampCalculator stampCalc = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(state, Coordinates.Position.LatestOnDevelopment()));
-        ConceptRecord entity = EntityService.get().getEntityFast(id);
+        
+		PatternEntityVersion latestDescriptionPattern = (PatternEntityVersion) Calculators.Stamp.DevelopmentLatest()
+				.latest(TinkarTerm.OWL_AXIOM_SYNTAX_PATTERN).get();
+        
+        EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(id));
 
-        // To work with a SemanticRecord, we need to obtain the proper id (check code on the TransformationMojo)
-        // concept.publicId().asUuidArray()[0] + partTypeName + "AXIOM")
-//        SemanticRecord entity = EntityService.get().getEntityFast(id);
+        AtomicBoolean matched = new AtomicBoolean(true);
+        
+		EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.OWL_AXIOM_SYNTAX_PATTERN.nid(), semanticEntity -> {
+			
+			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
+			
+			if (latest.isPresent()) {
 
-        if (entity != null) {
-            PatternEntityVersion pattern = (PatternEntityVersion) Calculators.Stamp.DevelopmentLatest().latest(TinkarTerm.OWL_AXIOM_SYNTAX_PATTERN).get();
-            Latest<ConceptVersionRecord> latest = stampCalc.latest(entity);
-//            Latest<SemanticVersionRecord> latest = stampCalc.latest(entity);
+				String fieldValue = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.AXIOM_SYNTAX, latest.get());
+				    
+				String owlAxiomStr = LoincUtility.buildOwlExpression(UUID.fromString(namespaceString), loincNum, component, property, timeAspc, system, scaleType, methodType);
+				
+				if (!latest.isPresent() || !fieldValue.equals(owlAxiomStr)) {
+					matched.set(false);
+				}
+			}
+		});	    		
 
-//            String fieldValue = pattern.getFieldWithMeaning(TinkarTerm.AXIOM_SYNTAX, latest.get());
-            String owlAxiomStr = LoincUtility.buildOwlExpression(UuidUtil.SNOMED_NAMESPACE, loincNum, component, property, timeAspc, system, scaleType, methodType);
-//            return latest.isPresent() && fieldValue.equals(owlAxiomStr);
-            return latest.isPresent() && latest.get().entity().entityToString().equals(owlAxiomStr);
-        }
-
-        return false;
-
-//        return latest.isPresent();
+        return matched.get();
     }
 }
