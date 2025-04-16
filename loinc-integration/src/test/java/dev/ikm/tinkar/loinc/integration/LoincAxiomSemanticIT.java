@@ -21,6 +21,7 @@ import dev.ikm.tinkar.entity.SemanticVersionRecord;
 import dev.ikm.tinkar.loinc.integration.LoincAbstractIntegrationTest.ConceptMapValue;
 import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.TinkarTerm;
+import dev.ikm.tinkar.terms.EntityProxy.Concept;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -32,11 +33,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static dev.ikm.tinkar.terms.TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE;
+import static dev.ikm.tinkar.terms.TinkarTerm.FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
+import static dev.ikm.tinkar.terms.TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@TestInstance(Lifecycle.PER_CLASS)
 public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
     /**
@@ -48,7 +51,7 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
     @Test
     public void testLoincAxiomSemanticsPart() throws IOException {
         String sourceFilePath = "../loinc-origin/target/origin-sources";
-        String errorFile = "target/failsafe-reports/PartCsv_not_found.txt";
+        String errorFile = "target/failsafe-reports/PartCsv_descriptions_not_found.txt";
 
         String absolutePath = findFilePath(sourceFilePath, "Part.csv");
         int notFound = processPartFile(absolutePath, errorFile);
@@ -76,45 +79,83 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
     protected boolean assertLinePart(String[] columns) {
         UUID id = uuid(columns[0]);
         
-		Map<UUID, ConceptMapValue> termConceptMap = new HashMap<>(); 
+		Map<UUID, ConceptMapValue> termConceptMap = new HashMap<>(); // is it PartDisplayName or PartName
         
 		EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(id));
 
 		String partNumber = removeQuotes(columns[0]);
 		String partTypeName = removeQuotes(columns[1]);
 		String partName = removeQuotes(columns[2]);
-	
-		LoincUtility.addPartToCache(partName.toLowerCase(), partTypeName, partNumber);
-
-		UUID uuidAxiom = uuid((concept.publicId().asUuidArray()[0] + partTypeName + "AXIOM"));
-	
+		String partDisplayName = removeQuotes(columns[3]);
+			
 		final StateSet active;
 		if (columns[4].equals("ACTIVE") || columns[4].equals("TRIAL") || columns[4].equals("DISCOURAGED")) {
 			active = StateSet.ACTIVE;
 		} else {
 			active = StateSet.INACTIVE;
 		}
+
+		AtomicBoolean matched = new AtomicBoolean(true);
+		AtomicInteger innerCount = new AtomicInteger(0);
+
+		// Create description semantics for non-empty fields
+		// FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE; // decriptionType for PartDisplayName
+		// REGULAR_NAME_DESCRIPTION_TYPE;         // decriptionType for PartName
+		if (!partName.isEmpty()) {
+			termConceptMap.put(getConceptMapKey(concept, partName, "Regular"), getConceptMapValue(REGULAR_NAME_DESCRIPTION_TYPE, partName));
+		}	
 		
-		AtomicBoolean matched = new AtomicBoolean(false);
+		if (!partDisplayName.isEmpty()) {
+			termConceptMap.put(getConceptMapKey(concept, partDisplayName, "FQN"), getConceptMapValue(FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE, partDisplayName));
+		}
+		
+		if (!partName.isEmpty() && !partTypeName.isEmpty() && !partNumber.isEmpty()) {
+			LoincUtility.addPartToCache(partName.toLowerCase(), partTypeName, partNumber);	
+		}
 		
 		StampCalculator stampCalc = StampCalculatorWithCache
 				.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
-	
+		
 		PatternEntityVersion latestDescriptionPattern = (PatternEntityVersion) Calculators.Stamp.DevelopmentLatest()
 				.latest(TinkarTerm.DESCRIPTION_PATTERN).get();
         
-		// NOT SURE if this part (forEach loop) is necessary since semanticEntity might not be needed for IT's logic
 		EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.DESCRIPTION_PATTERN.nid(), semanticEntity -> {
+			innerCount.incrementAndGet();
 			
 			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
 			UUID semanticEntityUUID = semanticEntity.asUuidArray()[0];
+	
+			ConceptMapValue cmv = termConceptMap.get(semanticEntityUUID);
 			
-			if(latest.isPresent())  {
-				matched.set(true);
-			} 
+			if(cmv != null) {
+				if (latest.isPresent()) {
+					
+					Component descriptionType = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.DESCRIPTION_TYPE,
+							latest.get());
+												
+					Component caseSensitivity = latestDescriptionPattern
+							.getFieldWithMeaning(TinkarTerm.DESCRIPTION_CASE_SIGNIFICANCE, latest.get());
+
+					String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
+
+					if (!descriptionType.equals(cmv.conceptDescType) || !caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE)
+							|| !text.equals(cmv.term)) {
+
+						matched.set(false);
+					}
+				} else {
+					matched.set(false);
+				}
+			} else {
+				matched.set(false);
+			}
 		});	
+
+		if(innerCount.get() == termConceptMap.size()) {
+			return matched.get();
+		} 
 		
-		return matched.get();
+		return false;
     }
     
     @Override
@@ -123,7 +164,7 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
         UUID id = uuid(loincNum);
 
         StateSet state = null;
-        if (columns[11].equals("ACTIVE") || columns[4].equals("TRIAL") || columns[11].equals("DISCOURAGED")) {
+        if (columns[11].equals("ACTIVE") || columns[11].equals("TRIAL") || columns[11].equals("DISCOURAGED")) {
             state = StateSet.ACTIVE;
         } else {
             state = StateSet.INACTIVE;
@@ -163,4 +204,12 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
         return matched.get();
     }
+
+	private ConceptMapValue getConceptMapValue(Concept conceptDescType, String term) {
+		return new ConceptMapValue(conceptDescType, term);
+	}
+
+	private UUID getConceptMapKey(Concept concept, String term, String typeStr) {
+		return uuid(concept.publicId().asUuidArray()[0] + term + typeStr + "DESC");
+	}
 }
