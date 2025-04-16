@@ -54,10 +54,4 @@ public class LoincIdentifierSemanticIT extends LoincAbstractIntegrationTest {
 
         return latest.isPresent();
     }
-
-	@Override
-	protected boolean assertLinePart(String[] columns) {
-		// TODO Auto-generated method stub
-		return false;
-	}
 }
