@@ -40,6 +40,7 @@ import static dev.ikm.tinkar.terms.TinkarTerm.FULLY_QUALIFIED_NAME_DESCRIPTION_T
 import static dev.ikm.tinkar.terms.TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@TestInstance(Lifecycle.PER_CLASS)
 public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
     /**
@@ -185,18 +186,21 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
         EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(id));
 
         AtomicBoolean matched = new AtomicBoolean(true);
+        AtomicInteger innerCount = new AtomicInteger(0);
         
 		EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.OWL_AXIOM_SYNTAX_PATTERN.nid(), semanticEntity -> {
 			
 			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
 			
 			if (latest.isPresent()) {
-
 				String fieldValue = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.AXIOM_SYNTAX, latest.get());
-				    
 				String owlAxiomStr = LoincUtility.buildOwlExpression(UUID.fromString(namespaceString), loincNum, component, property, timeAspc, system, scaleType, methodType);
 				
-				if (!latest.isPresent() || !fieldValue.equals(owlAxiomStr)) {
+				if(owlAxiomStr != null) {
+					innerCount.incrementAndGet();
+				}
+				
+				if (!latest.isPresent() || !fieldValue.equals(owlAxiomStr) ||  innerCount.get() !=1 ) {
 					matched.set(false);
 				}
 			}
