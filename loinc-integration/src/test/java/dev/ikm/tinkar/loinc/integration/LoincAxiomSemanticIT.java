@@ -2,6 +2,7 @@ package dev.ikm.tinkar.loinc.integration;
 
 import dev.ikm.maven.LoincUtility;
 import dev.ikm.tinkar.common.id.PublicIds;
+import dev.ikm.tinkar.common.util.uuid.UuidT5Generator;
 import dev.ikm.tinkar.common.util.uuid.UuidUtil;
 import dev.ikm.tinkar.component.Component;
 import dev.ikm.tinkar.coordinate.Calculators;
@@ -50,7 +51,7 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
      */	
 	@BeforeAll
     @Test
-    public void testLoincAxiomSemanticsPart() throws IOException {
+    public void testAxiomSemanticsPart() throws IOException {
         String sourceFilePath = "../loinc-origin/target/origin-sources";
         String errorFile = "target/failsafe-reports/PartCsv_descriptions_not_found.txt";
 
@@ -80,10 +81,6 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
     protected boolean assertLine(String[] columns) {
     	if(isPart) {
             UUID id = uuid(columns[0]);
-            
-    		Map<UUID, ConceptMapValue> termConceptMap = new HashMap<>(); // is it PartDisplayName or PartName
-            
-    		EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(id));
 
     		String partNumber = removeQuotes(columns[0]);
     		String partTypeName = removeQuotes(columns[1]);
@@ -100,64 +97,40 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
     		AtomicBoolean matched = new AtomicBoolean(true);
     		AtomicInteger innerCount = new AtomicInteger(0);
 
-    		// Create description semantics for non-empty fields
-    		// FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE; // decriptionType for PartDisplayName
-    		// REGULAR_NAME_DESCRIPTION_TYPE;         // decriptionType for PartName
-    		if (!partName.isEmpty()) {
-    			termConceptMap.put(getConceptMapKey(concept, partName, "Regular"), getConceptMapValue(REGULAR_NAME_DESCRIPTION_TYPE, partName));
-    		}	
-    		
-    		if (!partDisplayName.isEmpty()) {
-    			termConceptMap.put(getConceptMapKey(concept, partDisplayName, "FQN"), getConceptMapValue(FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE, partDisplayName));
-    		}
+    		UUID conceptUuid = UuidT5Generator.get(UUID.fromString(namespaceString), partNumber);
+    		EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(conceptUuid));
+    		EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(UUID.fromString(namespaceString), concept.publicId().asUuidArray()[0] + partTypeName + "AXIOM")));
+    		EntityProxy.Concept parentConcept = LoincUtility.getParentForPartType(UUID.fromString(namespaceString), partTypeName);
     		
     		if (!partName.isEmpty() && !partTypeName.isEmpty() && !partNumber.isEmpty()) {
     			LoincUtility.addPartToCache(partName.toLowerCase(), partTypeName, partNumber);	
     		}
     		
-    		StampCalculator stampCalc = StampCalculatorWithCache
-    				.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnMaster()));
-    		
-    		PatternEntityVersion latestDescriptionPattern = (PatternEntityVersion) Calculators.Stamp.DevelopmentLatest()
-    				.latest(TinkarTerm.DESCRIPTION_PATTERN).get();
-            
-    		EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.DESCRIPTION_PATTERN.nid(), semanticEntity -> {
+	        StampCalculator stampCalc = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(active, Coordinates.Position.LatestOnDevelopment()));
+	        
+			PatternEntityVersion latestAxiomPattern = (PatternEntityVersion) Calculators.Stamp.DevelopmentLatest()
+					.latest(TinkarTerm.OWL_AXIOM_SYNTAX_PATTERN).get();
+	
+			EntityService.get().forEachSemanticForComponentOfPattern(concept.nid(), TinkarTerm.OWL_AXIOM_SYNTAX_PATTERN.nid(), semanticEntity -> {
+				
+				Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
     			innerCount.incrementAndGet();
     			
-    			Latest<SemanticEntityVersion> latest = stampCalc.latest(semanticEntity);
     			UUID semanticEntityUUID = semanticEntity.asUuidArray()[0];
-    	
-    			ConceptMapValue cmv = termConceptMap.get(semanticEntityUUID);
     			
-    			if(cmv != null) {
-    				if (latest.isPresent()) {
+    			if(latest.isPresent()) {
     					
-    					Component descriptionType = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.DESCRIPTION_TYPE,
-    							latest.get());
-    												
-    					Component caseSensitivity = latestDescriptionPattern
-    							.getFieldWithMeaning(TinkarTerm.DESCRIPTION_CASE_SIGNIFICANCE, latest.get());
+    				String fieldValue = latestAxiomPattern.getFieldWithMeaning(TinkarTerm.AXIOM_SYNTAX, latest.get());		
 
-    					String text = latestDescriptionPattern.getFieldWithMeaning(TinkarTerm.TEXT_FOR_DESCRIPTION, latest.get());
+    				// need to find out how to test ISA when there is NON-NULL parent concept
 
-    					if (!descriptionType.equals(cmv.conceptDescType) || !caseSensitivity.equals(DESCRIPTION_NOT_CASE_SENSITIVE)
-    							|| !text.equals(cmv.term)) {
-
-    						matched.set(false);
-    					}
-    				} else {
-    					matched.set(false);
-    				}
+    				// if (parentConcept == null) { matched.set(false); }
     			} else {
     				matched.set(false);
     			}
     		});	
-
-    		if(innerCount.get() == termConceptMap.size()) {
-    			return matched.get();
-    		} 
-    		
-    		return false;    		
+ 
+    		return matched.get() && innerCount.get() == 1;   		
     	} else {
     	
 	        String loincNum = columns[0]; // LOINC_NUM
@@ -199,13 +172,15 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 						innerCount.incrementAndGet();
 					}
 					
-					if (!latest.isPresent() || !fieldValue.equals(owlAxiomStr) ||  innerCount.get() !=1 ) {
+					if (!fieldValue.equals(owlAxiomStr)) {
 						matched.set(false);
-					}
+					} 
+				} else {
+					matched.set(false);
 				}
 			});	    		
 	
-	        return matched.get();
+	        return matched.get() && innerCount.get() == 1;
     	}
     }
 
