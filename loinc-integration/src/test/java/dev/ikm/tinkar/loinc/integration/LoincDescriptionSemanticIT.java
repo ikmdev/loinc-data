@@ -151,4 +151,5 @@ public class LoincDescriptionSemanticIT extends LoincAbstractIntegrationTest {
 	private UUID getConceptMapKey(Concept concept, String term, String typeStr) {
 		return uuid(concept.publicId().asUuidArray()[0] + term + typeStr + "DESC");
 	}
+	
 }
