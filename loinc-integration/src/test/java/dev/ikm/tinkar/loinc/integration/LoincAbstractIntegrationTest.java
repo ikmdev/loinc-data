@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 public abstract class LoincAbstractIntegrationTest {
     Logger log = LoggerFactory.getLogger(LoincAbstractIntegrationTest.class);
     static String namespaceString;
+    boolean isPart;
 
     @AfterAll
     public static void shutdown() {
@@ -81,6 +82,7 @@ public abstract class LoincAbstractIntegrationTest {
      * @throws IOException
      */
     protected int processLoincFile(String sourceFilePath, String errorFile) throws IOException {
+    	isPart = false;
         int notFound = 0, tempIndex = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(sourceFilePath));
              BufferedWriter bw = new BufferedWriter(new FileWriter(errorFile))) {
@@ -136,6 +138,7 @@ public abstract class LoincAbstractIntegrationTest {
      * @throws IOException
      */
     protected int processPartFile(String sourceFilePath, String errorFile) throws IOException {
+    	isPart = true;
         int notFound = 0, tempIndex = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(sourceFilePath));
              BufferedWriter bw = new BufferedWriter(new FileWriter(errorFile))) {
@@ -149,7 +152,7 @@ public abstract class LoincAbstractIntegrationTest {
 
                 //Only process rows with the target PartTypeName Transformed. Otherwise, null Entity is returned.
                 if (TARGET_PART_TYPES.contains(columns[1])) {
-                    if (!assertLine(columns)) {
+                    if (!assertLine(columns)) { 
                         notFound++;
                         bw.write(line);
                         bw.newLine();
