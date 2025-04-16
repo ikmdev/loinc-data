@@ -37,7 +37,6 @@ public abstract class LoincAbstractIntegrationTest {
     @BeforeAll
     public static void setup() {
         CachingService.clearAll();
-        boolean isPart = false;
         //Note. Dataset needed to be generated within repo, with command 'mvn clean install'
         namespaceString = System.getProperty("origin.namespace"); // property set in pom.xml
         File datastore = new File(System.getProperty("datastorePath")); // property set in pom.xml
