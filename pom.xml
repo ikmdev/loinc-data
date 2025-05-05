@@ -6,7 +6,7 @@
     <parent>
         <groupId>dev.ikm.tinkar</groupId>
         <artifactId>loinc-data-bom</artifactId>
-        <version>1.5.0</version>
+        <version>1.6.0</version>
         <relativePath/>
     </parent>
 
@@ -32,6 +32,9 @@
         <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
         <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
         <maven-dependency-plugin.version>3.8.1</maven-dependency-plugin.version>
+
+        <maven-clean-plugin.version>3.3.1</maven-clean-plugin.version>
+        <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
 
         <!-- origin -->
         <origin.working.directory>${project.build.directory}/origin-sources</origin.working.directory>
@@ -164,6 +167,19 @@
                     <artifactId>maven-dependency-plugin</artifactId>
                     <version>${maven-dependency-plugin.version}</version>
                 </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${maven-clean-plugin.version}</version>
+                </plugin>
+                
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>${maven-antrun-plugin.version}</version>
+                </plugin>
+                
                 <plugin>
                     <groupId>dev.ikm.maven</groupId>
                     <artifactId>loinc-starterdata-maven-plugin</artifactId>

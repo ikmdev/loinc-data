@@ -16,18 +16,78 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>dev.ikm.tinkar</groupId>
-                <artifactId>tinkar-data-maven-plugin</artifactId>
-                <version>${tinkar-starter-data.version}</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>load-data</id>
+                        <id>clean</id>
+                        <phase>clean</phase>
                         <goals>
-                            <goal>generate-data</goal>
+                            <goal>clean</goal>
                         </goals>
                         <configuration>
-                            <dataStore>${user.home}/Solor/generated-data</dataStore>
-                            <exportFile>${user.home}/Solor/tinkar-export-starter-data-pb.zip</exportFile>
+                            <filesets>
+                                <fileset>
+                                    <directory>${user.home}/Solor/${tinkar-starter-data.artifactId}-${tinkar-starter-data.version}-${tinkar-starter-data.classifier}</directory>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                    <followSymlinks>false</followSymlinks>
+                                </fileset>
+                                <fileset>
+                                    <directory>${user.home}/Solor/generated-data</directory>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                    <followSymlinks>false</followSymlinks>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-tinkar-starter-data-dependency</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${tinkar-starter-data.groupId}</groupId>
+                                    <artifactId>${tinkar-starter-data.artifactId}</artifactId>
+                                    <version>${tinkar-starter-data.version}</version>
+                                    <classifier>${tinkar-starter-data.classifier}</classifier>
+                                    <type>zip</type>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${user.home}/Solor</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>rename-file</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <move file="${user.home}/Solor/${tinkar-starter-data.artifactId}-${tinkar-starter-data.version}-${tinkar-starter-data.classifier}"
+                                      tofile="${user.home}/Solor/generated-data" />
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
@@ -67,7 +127,7 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin>           
         </plugins>
     </build>
 </project>
