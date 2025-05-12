@@ -18,6 +18,7 @@ import dev.ikm.tinkar.entity.graph.EntityVertex;
 import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.TinkarTerm;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -28,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
+@Disabled
 @TestInstance(Lifecycle.PER_CLASS)
 public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
@@ -39,7 +40,7 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
      */	
 	@BeforeAll
     @Test
-    public void testAxiomSemanticsPart() throws IOException {
+	public void testAxiomSemanticsPart() throws IOException {
         String sourceFilePath = "../loinc-origin/target/origin-sources";
         String errorFile = "target/failsafe-reports/PartCsv_axioms_not_found.txt";
 

@@ -35,8 +35,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.text.html.parser.Entity;
-
 import static dev.ikm.tinkar.terms.TinkarTerm.PHENOMENON;
 import static dev.ikm.tinkar.terms.TinkarTerm.USER;
 import static dev.ikm.tinkar.terms.TinkarTerm.IDENTIFIER_SOURCE;
@@ -295,8 +293,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept trialStatus = makeConceptProxy(trialStatusStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(LOINC_TRIAL_STATUS_PATTERN))
                         .meaning(trialStatus)
-                        .purpose(STATUS_VALUE)
-                        .fieldDefinition(trialStatus, STATUS_VALUE, STRING))
+                        .purpose(STATUS_VALUE))
                         .attach((FullyQualifiedName fqn) -> fqn
                                 .text("Trial Status Pattern")
                                 .language(ENGLISH_LANGUAGE)
@@ -310,8 +307,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept discouragedStatus = makeConceptProxy(discouragedStatusStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(LOINC_DISCOURAGED_STATUS_PATTERN))
                 .meaning(discouragedStatus)
-                .purpose(STATUS_VALUE)
-                        .fieldDefinition(discouragedStatus, STATUS_VALUE, STRING))
+                .purpose(STATUS_VALUE))
                 .attach((FullyQualifiedName fqn) -> fqn
                         .text("Discouraged Status Pattern")
                         .language(ENGLISH_LANGUAGE)
@@ -367,7 +363,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept orderable = makeConceptProxy(orderableStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_ORDERABLE_MEMBERSHIP_PATTERN))
                 .meaning(orderable)
-                .purpose(MEMBERSHIP_SEMANTIC).fieldDefinition(orderable, MEMBERSHIP_SEMANTIC, STRING))
+                .purpose(MEMBERSHIP_SEMANTIC))
                 .attach((FullyQualifiedName fqn) -> fqn
                         .text("Test Orderable Pattern")
                         .language(ENGLISH_LANGUAGE)
@@ -381,7 +377,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept reportable = makeConceptProxy(reportableStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_REPORTABLE_MEMBERSHIP_PATTERN))
                 .meaning(reportable)
-                .purpose(MEMBERSHIP_SEMANTIC).fieldDefinition(reportable, MEMBERSHIP_SEMANTIC, STRING))
+                .purpose(MEMBERSHIP_SEMANTIC))
                 .attach((FullyQualifiedName fqn) -> fqn
                         .text("Test Reportable Pattern")
                         .language(ENGLISH_LANGUAGE)
@@ -395,7 +391,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
         EntityProxy.Concept testSubset = makeConceptProxy(testSubsetStr);
         session.compose((PatternAssembler patternAssembler) -> patternAssembler.pattern(makePatternProxy(TEST_SUBSET_MEMBERSHIP_PATTERN))
                 .meaning(testSubset)
-                .purpose(MEMBERSHIP_SEMANTIC).fieldDefinition(testSubset, MEMBERSHIP_SEMANTIC, STRING))
+                .purpose(MEMBERSHIP_SEMANTIC))
                 .attach((FullyQualifiedName fqn) -> fqn
                         .text("Test Subset Membership Pattern")
                         .language(ENGLISH_LANGUAGE)

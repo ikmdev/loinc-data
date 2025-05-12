@@ -11,6 +11,7 @@ import dev.ikm.tinkar.composer.Session;
 import dev.ikm.tinkar.composer.assembler.ConceptAssembler;
 import dev.ikm.tinkar.composer.assembler.SemanticAssembler;
 import dev.ikm.tinkar.composer.template.AxiomSyntax;
+import dev.ikm.tinkar.composer.template.FullyQualifiedName;
 import dev.ikm.tinkar.composer.template.USDialect;
 import dev.ikm.tinkar.composer.template.StatedAxiom;
 import dev.ikm.tinkar.entity.EntityService;
@@ -37,15 +38,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static dev.ikm.tinkar.terms.TinkarTerm.*;
+import static dev.ikm.tinkar.terms.TinkarTerm.FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
 
 @Mojo(name = "run-loinc-transformation", defaultPhase = LifecyclePhase.INSTALL)
 public class LoincTransformationMojo extends AbstractMojo {
@@ -57,6 +61,8 @@ public class LoincTransformationMojo extends AbstractMojo {
     private File partCsv;
 
     private File loincCsv;
+
+    private File componentCsv;
 
     @Parameter(property = "datastorePath", required = true)
     private String datastorePath;
@@ -78,6 +84,7 @@ public class LoincTransformationMojo extends AbstractMojo {
     private final String loincAuthorStr = "Regenstrief Institute, Inc. Author";
     private final EntityProxy.Concept loincAuthor = LoincUtility.makeConceptProxy(namespace, loincAuthorStr);
 
+    private final Map<String,String> idToStatus = new ConcurrentHashMap<>();
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -86,7 +93,7 @@ public class LoincTransformationMojo extends AbstractMojo {
         this.namespace = UUID.fromString(namespaceString);
         File datastore = new File(datastorePath);
 
-        LoincUtility.clearPartCache();
+        LoincUtility.clearCaches();
 
         try {
             unzipRawData(inputDirectoryPath);
@@ -106,14 +113,11 @@ public class LoincTransformationMojo extends AbstractMojo {
             // Process part.csv first, then process loinc.csv
             // This avoids potential concurrent modification issues with the composer
             try {
-                LOG.info("Starting part.csv processing...");
                 List<PartData> filteredParts = processPartCsvAsync();
+                processComponentRowsAsync(filteredParts, composer);
                 createPartConceptsAsync(filteredParts, composer);
-                LOG.info("Part.csv processing completed");
-                LOG.info("Part Concepts in Cache: " + LoincUtility.getPartCacheSize());
-                LOG.info("Starting loinc.csv processing...");
+                processLeftOverComponents(composer);
                 processLoincRowsAsync(composer);
-                LOG.info("Loinc.csv processing completed");
             } catch (Exception e) {
                 LOG.error("Error during data processing", e);
             }
@@ -164,6 +168,8 @@ public class LoincTransformationMojo extends AbstractMojo {
                         partCsv = file;
                     } else if (file.getName().equals("Loinc.csv")) {
                         loincCsv = file;
+                    } else if (file.getName().equals("ComponentHierarchyBySystem.csv")) {
+                        componentCsv = file;
                     }
                     File found = searchDataFolder(file);
                     if (found != null) {
@@ -212,6 +218,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                 // Only process rows with the target part types
                 if (TARGET_PART_TYPES.contains(partTypeName)) {
                     PartData partData = new PartData(partNumber, partTypeName, partName, partDisplayName, status);
+                    idToStatus.put(partNumber, status);
                     filteredPartData.add(partData);
                 }
             });
@@ -354,12 +361,184 @@ public class LoincTransformationMojo extends AbstractMojo {
         }
     }
 
+    /**
+     * Process Component rows and create semantics
+     */
+    private void processComponentRowsAsync(List<PartData> parts, Composer composer) throws Exception {
+        LOG.info("Starting ComponentHierarchyBySystem.csv processing");
+
+        // Lock object for synchronizing access to the composer
+        final Object composerLock = new Object();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(componentCsv))) {
+            reader.readLine(); // skip header
+
+            // handle first line of data as addition to existing starter data Component
+            String componentLine = reader.readLine();
+            String[] cols = splitCsvLine(componentLine);
+            // This should exist already from LoincStarterData.
+            EntityProxy.Concept component = LoincUtility.makeConceptProxy(namespace, "Component");
+            // Add new UUID to existing Component.
+            EntityProxy.Concept newComponent = EntityProxy.Concept.make("Component", component.asUuidArray()[0], UuidT5Generator.get(namespace, removeQuotes(cols[3])));
+            Session session = composer.open(State.ACTIVE, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
+            session.compose((ConceptAssembler conceptAssembler) -> conceptAssembler.concept(newComponent));
+
+            // Read all lines from ComponentHierarchyBySystem.csv
+            List<String> lines = new ArrayList<>();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
+            }
+
+            LOG.info("Read " + lines.size() + " ComponentHierarchyBySystem rows for processing");
+
+            // Process lines in chunks for better memory management
+            final int CHUNK_SIZE = 100;
+            List<CompletableFuture<Void>> allFutures = new ArrayList<>();
+
+            //for (int i = 0; i < lines.size(); i++) {
+            for (int i = 0; i < lines.size(); i += CHUNK_SIZE) {
+            //for (int i = 0; i < 7; i ++) {
+                final int startIndex = i;
+                final int endIndex = Math.min(i + CHUNK_SIZE, lines.size());
+
+                CompletableFuture<Void> chunkFuture = CompletableFuture.runAsync(() -> {
+                    try {
+                        // Process all rows in this chunk sequentially but with synchronized composer access
+                        for (int j = startIndex; j < endIndex; j++) {
+                        //for (int j = startIndex; j < startIndex+1; j++) {
+                        //int j = i;
+                            final String csvLine = lines.get(j);
+
+                            String[] columns = splitCsvLine(csvLine);
+                            if (columns.length < 5) {
+                                LOG.warn("Invalid ComponentHierarchyBySystem.csv row (insufficient columns): " + csvLine);
+                                continue;
+                            }
+
+                            // Synchronize access to the composer object
+                            synchronized (composerLock) {
+                                try {
+                                    createComponentRowConcept(parts, composer, columns);
+                                } catch (Exception e) {
+                                    LOG.error("Error creating ComponentHierarchyBySystem concept for row: " + j, e);
+                                    throw e;
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        LOG.error("Error processing ComponentHierarchyBySystem ", e);//chunk " + startIndex + " to " + endIndex, e);
+                        throw e;
+                    }
+                }, executorService);
+
+                allFutures.add(chunkFuture);
+            }
+
+            // Wait for all chunk processing to complete
+            try {
+                CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0])).join();
+                LOG.info("ComponentHierarchyBySystem processing completed");
+            } catch (Exception e) {
+                LOG.error("Error waiting for ComponentHierarchyBySystem processing to complete", e);
+            }
+
+        } catch (IOException e) {
+            LOG.error("Error reading ComponentHierarchyBySystem.csv for semantic processing", e);
+            throw e;
+        }
+    }
+
+    /**
+     * Creates a new LOINC concept based on the provided part data.
+     */
+    private void createComponentRowConcept(List<PartData> parts, Composer composer, String[] columns) {
+        String code = removeQuotes(columns[3]);
+        String codeText = removeQuotes(columns[4]);
+        String immediateParent = removeQuotes(columns[2]);
+
+        // skip if not prefixed by LP
+        if (!code.startsWith("LP")) {
+            return;
+        }
+        try {
+            // This concept will be created later on when we parse the Part file.
+            State state = State.ACTIVE;
+            Session session = composer.open(state, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
+            Session activeSession = composer.open(State.ACTIVE, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
+            EntityProxy.Concept rowConcept = EntityProxy.Concept.make(PublicIds.of(UuidT5Generator.get(namespace, code)));
+            // Create the Axiom Semantic
+            EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, rowConcept.publicId().asUuidArray()[0] + code + "AXIOM")));
+            // This will also get created during the parsing of Part later on
+            EntityProxy.Concept parentConcept = EntityProxy.Concept.make(PublicIds.of(UuidT5Generator.get(namespace, immediateParent)));
+
+            try {
+                activeSession.compose(new StatedAxiom()
+                    .semantic(axiomSemantic)
+                    .isA(parentConcept),
+                    rowConcept);
+            } catch (Exception e) {
+                LOG.error("Error creating stated definition semantic for concept: " + rowConcept, e);
+                throw e;
+            }
+
+            LoincUtility.addComponentPartToCache(code, codeText);
+            // This will not be created later on. This is a new concept only existing in the Component file
+            String obsEnt = "Observable Entity of Component " + codeText;
+            EntityProxy.Concept rowConcept2 = EntityProxy.Concept.make(PublicIds.of(UuidT5Generator.get(namespace, obsEnt)));
+            session.compose((ConceptAssembler concept) -> concept
+                    .concept(rowConcept2)
+                    .attach((FullyQualifiedName fqn) -> fqn
+                            .language(TinkarTerm.ENGLISH_LANGUAGE)
+                            .text(obsEnt)
+                            .caseSignificance(TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE)
+                    )
+            );
+
+            String owlExpressionWithPublicIds = LoincUtility.buildComponentOwlExpression(namespace, rowConcept2, rowConcept);
+            EntityProxy.Semantic axiomSemantic2 = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, rowConcept2.publicId().asUuidArray()[0] + codeText + "AXIOM")));
+            try {
+                activeSession.compose(new AxiomSyntax()
+                                .semantic(axiomSemantic2)
+                                .text(owlExpressionWithPublicIds),
+                        rowConcept2);
+            } catch (Exception e) {
+                LOG.error("Error creating stated definition semantic for concept: " + rowConcept2, e);
+            }
+        } catch (Exception e) {
+            LOG.error("Error creating concept for Component: " + code, e);
+            throw e;
+        }
+    }
+
+    /**
+     * Process the concepts in the Component cache that were not found in the Part file.
+     * All concepts should be considered ACTIVE
+     * @param composer
+     */
+    private void processLeftOverComponents(Composer composer) {
+        // We need to be consistent with our states across Component, Part, and Loinc
+        Session session = composer.open(State.ACTIVE, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
+        BiConsumer<String,String> consumer = (code, codeText) -> {
+            EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(UuidT5Generator.get(namespace, code)));
+                session.compose((ConceptAssembler assembler) -> assembler
+                        .concept(concept)
+                        .attach((FullyQualifiedName fqn) -> fqn
+                                .language(TinkarTerm.ENGLISH_LANGUAGE)
+                                .text(codeText)
+                                .caseSignificance(TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE)
+                        )
+                );
+            createIdentifierSemantic(session, concept, code);
+        };
+        LoincUtility.forEachComponent(consumer);
+    }
 
     /**
      * Creates a new LOINC concept based on the provided part data.
      */
     private void createLoincPartConcept(PartData partData, Composer composer) {
-        State state = "ACTIVE".equals(partData.getStatus()) ? State.ACTIVE : State.INACTIVE;
+        State state = State.ACTIVE;
 
         EntityProxy.Concept author = loincAuthor; // Regenstrief Institute, Inc. Author
         EntityProxy.Concept module = LoincUtility.getModuleConcept(namespace); // Loinc Module??
@@ -380,14 +559,17 @@ public class LoincTransformationMojo extends AbstractMojo {
             });
 
             // Create the two Description Semantics
-            createDescriptionSemantic(session, concept, partData.getPartDisplayName(), FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE);
-            createDescriptionSemantic(session, concept, partData.getPartName(), REGULAR_NAME_DESCRIPTION_TYPE);
+            createDescriptionSemantic(session, concept, partData.getPartDisplayName(), TinkarTerm.FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE);
+            createDescriptionSemantic(session, concept, partData.getPartName(), TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE);
 
             // Create the Identifier Semantic
             createIdentifierSemantic(session, concept, partData.getPartNumber());
 
             // Create the Axiom Semantic for Part Concepts
-            createAxiomSemanticForPartConcept(session, concept, partData.getPartTypeName());
+            // if the getPartNumber code is not in the Component cache we built in previous step, then createAxiom... call
+            if (LoincUtility.removeComponentPartFromCache(partData.getPartNumber()) == null) {
+                createAxiomSemanticForPartConcept(session, concept, partData.getPartTypeName());
+            }
         } catch (Exception e) {
             LOG.error("Error creating concept for part: " + partData.getPartTypeName(), e);
         }
@@ -456,23 +638,23 @@ public class LoincTransformationMojo extends AbstractMojo {
                 }
 
                 if (!consumerName.isEmpty()) {
-                    createDescriptionSemantic(session, concept, consumerName, REGULAR_NAME_DESCRIPTION_TYPE);
+                    createDescriptionSemantic(session, concept, consumerName, TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE);
                 }
 
                 if (!shortName.isEmpty()) {
-                    createDescriptionSemantic(session, concept, shortName, REGULAR_NAME_DESCRIPTION_TYPE);
+                    createDescriptionSemantic(session, concept, shortName, TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE);
                 }
 
                 if (!relatedNames2.isEmpty()) {
-                    createDescriptionSemantic(session, concept, relatedNames2, REGULAR_NAME_DESCRIPTION_TYPE);
+                    createDescriptionSemantic(session, concept, relatedNames2, TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE);
                 }
 
                 if (!displayName.isEmpty()) {
-                    createDescriptionSemantic(session, concept, displayName, REGULAR_NAME_DESCRIPTION_TYPE);
+                    createDescriptionSemantic(session, concept, displayName, TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE);
                 }
 
                 if (!definitionDescription.isEmpty()) {
-                    createDescriptionSemantic(session, concept, definitionDescription, DEFINITION_DESCRIPTION_TYPE);
+                    createDescriptionSemantic(session, concept, definitionDescription, TinkarTerm.DEFINITION_DESCRIPTION_TYPE);
                 }
 
                 // Create identifier semantic
@@ -521,7 +703,7 @@ public class LoincTransformationMojo extends AbstractMojo {
      */
     private void createDescriptionSemantic(Session session, EntityProxy.Concept concept, String description,
                                            EntityProxy.Concept descriptionType) {
-        String typeStr = descriptionType.equals(TinkarTerm.FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE) ? "FQN" :
+        String typeStr = descriptionType.equals(FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE) ? "FQN" :
                 descriptionType.equals(TinkarTerm.REGULAR_NAME_DESCRIPTION_TYPE) ? "Regular" : "Definition";
 
         EntityProxy.Semantic semantic = EntityProxy.Semantic.make(
@@ -552,7 +734,7 @@ public class LoincTransformationMojo extends AbstractMojo {
             session.compose((SemanticAssembler assembler) -> {
                 assembler.semantic(EntityProxy.Semantic.make(
                                 PublicIds.of(UuidT5Generator.get(namespace, concept.publicId().asUuidArray()[0] + identifier))))
-                        .pattern(IDENTIFIER_PATTERN)
+                        .pattern(TinkarTerm.IDENTIFIER_PATTERN)
                         .reference(concept)
                         .fieldValues(fv -> fv
                                 .with(identifierSource)
@@ -714,7 +896,7 @@ public class LoincTransformationMojo extends AbstractMojo {
         return column.replaceAll("^\"|\"$", "").trim();
     }
     private USDialect usDialect() {
-        return new USDialect().acceptability(PREFERRED);
+        return new USDialect().acceptability(TinkarTerm.PREFERRED);
     }
 
     private static class PartData {
