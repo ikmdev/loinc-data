@@ -37,7 +37,7 @@ public class LoincConceptPartSemanticIT extends LoincAbstractIntegrationTest {
     @Override
     protected boolean assertLine(String[] columns) {
         UUID id = uuid(columns[0]);
-        StateSet state = columns[4].equals("ACTIVE") ? StateSet.ACTIVE : StateSet.INACTIVE;
+        StateSet state = (columns[4].equals("ACTIVE")||columns[4].equals("DEPRECATED")) ? StateSet.ACTIVE : StateSet.INACTIVE;
 
         StampCalculator stampCalc = StampCalculatorWithCache.getCalculator(StampCoordinateRecord.make(state, Coordinates.Position.LatestOnMaster()));
         ConceptRecord entity = EntityService.get().getEntityFast(id);

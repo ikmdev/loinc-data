@@ -3,12 +3,11 @@ package dev.ikm.maven;
 import dev.ikm.tinkar.common.util.uuid.UuidT5Generator;
 import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.TinkarTerm;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 public class LoincUtility {
     public static final String LOINC_TRIAL_STATUS_PATTERN = "LOINC Trial Status Pattern";
@@ -20,6 +19,8 @@ public class LoincUtility {
     public static final String TEST_ORDERABLE_MEMBERSHIP_PATTERN = "Test Orderable Membership Pattern";
 
     public static final Map<String, String> partCache = new ConcurrentHashMap<>();
+
+    private static final Map<String, String> componentPartCache = new ConcurrentHashMap<>();
 
     public static EntityProxy.Pattern getLoincTrialStatusPattern(UUID namespace){
         return makePatternProxy(namespace, LOINC_TRIAL_STATUS_PATTERN);
@@ -82,12 +83,29 @@ public class LoincUtility {
         return partCache.get(key);
     }
 
-    public static void clearPartCache(){
+    public static void clearCaches(){
         partCache.clear();
+        componentPartCache.clear();
     }
 
     public static int getPartCacheSize(){
         return partCache.size();
+    }
+
+    public static void addComponentPartToCache(String partNumber, String text) {
+        componentPartCache.put(partNumber, text);
+    }
+
+    public static String removeComponentPartFromCache(String partNumber) {
+        return componentPartCache.remove(partNumber);
+    }
+
+    public static int getComponentPartCacheSize() {
+        return componentPartCache.size();
+    }
+
+    public static void forEachComponent(BiConsumer<String,String> consumer) {
+        componentPartCache.forEach(consumer);
     }
 
     public static EntityProxy.Concept getParentForPartType(UUID namespace, String partType){
@@ -127,6 +145,26 @@ public class LoincUtility {
                 break;
         }
         return parentConcept;
+    }
+
+    public static String buildComponentOwlExpression(UUID namespace, EntityProxy.Concept component, EntityProxy.Concept code) {
+        String obsEntityStr = "Observable Entity";
+        EntityProxy.Concept observableEntityConcept = makeConceptProxy(namespace, obsEntityStr);
+
+        StringBuilder owlExpressionBuilder = new StringBuilder();
+
+        owlExpressionBuilder.append("EquivalentClasses(:["+  component.publicId().asUuidArray()[0] +"]");
+        owlExpressionBuilder.append( " ObjectIntersectionOf(:["+  observableEntityConcept.publicId().asUuidArray()[0] + "]");
+        owlExpressionBuilder.append(" ObjectSomeValuesFrom(" +
+            ":["+ TinkarTerm.ROLE_GROUP.publicId().asUuidArray()[0] +"]" +
+            " ObjectSomeValuesFrom(" +
+            ":[" + UuidT5Generator.get(namespace, "Component")+ "]" +
+            " :[" + code.publicId().asUuidArray()[0] + "]" +
+            ")" +
+            ")");
+        owlExpressionBuilder.append("))");
+
+        return owlExpressionBuilder.toString();
     }
 
     public static String buildOwlExpression(UUID namespace, String loincNum, String component, String property,

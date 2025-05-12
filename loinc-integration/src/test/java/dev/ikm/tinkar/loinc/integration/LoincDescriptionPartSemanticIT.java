@@ -61,7 +61,7 @@ public class LoincDescriptionPartSemanticIT extends LoincAbstractIntegrationTest
 		String partDisplayName = removeQuotes(columns[3]);
 			
 		final StateSet active;
-		if (columns[4].equals("ACTIVE") || columns[4].equals("TRIAL") || columns[4].equals("DISCOURAGED")) {
+		if (columns[4].equals("ACTIVE") || columns[4].equals("TRIAL") || columns[4].equals("DISCOURAGED") || columns[4].equals("DEPRECATED")) {
 			active = StateSet.ACTIVE;
 		} else {
 			active = StateSet.INACTIVE;
