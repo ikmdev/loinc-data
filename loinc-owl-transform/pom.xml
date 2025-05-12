@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.ikm.loinc</groupId>
         <artifactId>loinc-data</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-IKDT-941-Parse-Loinc-Component-Hierarchy-SNAPSHOT</version>
     </parent>
 
     <artifactId>loinc-owl-transform</artifactId>
