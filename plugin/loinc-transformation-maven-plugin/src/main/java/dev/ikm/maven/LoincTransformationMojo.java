@@ -396,9 +396,7 @@ public class LoincTransformationMojo extends AbstractMojo {
             final int CHUNK_SIZE = 100;
             List<CompletableFuture<Void>> allFutures = new ArrayList<>();
 
-            //for (int i = 0; i < lines.size(); i++) {
             for (int i = 0; i < lines.size(); i += CHUNK_SIZE) {
-            //for (int i = 0; i < 7; i ++) {
                 final int startIndex = i;
                 final int endIndex = Math.min(i + CHUNK_SIZE, lines.size());
 
@@ -406,8 +404,6 @@ public class LoincTransformationMojo extends AbstractMojo {
                     try {
                         // Process all rows in this chunk sequentially but with synchronized composer access
                         for (int j = startIndex; j < endIndex; j++) {
-                        //for (int j = startIndex; j < startIndex+1; j++) {
-                        //int j = i;
                             final String csvLine = lines.get(j);
 
                             String[] columns = splitCsvLine(csvLine);
