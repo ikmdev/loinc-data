@@ -30,7 +30,7 @@
                             <goal>run-full-reasoner</goal>
                         </goals>
                         <configuration>
-                            <dataStore>${user.home}/Solor/generated-data</dataStore>
+                            <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
                             <reasonerType>${reasoner-type}</reasonerType>
                         </configuration>
                     </execution>

@@ -24,6 +24,7 @@
         <module>loinc-owl-transform</module>
         <module>loinc-reasoner</module>
         <module>loinc-integration</module>
+        <module>loinc-export</module>
     </modules>
 
     <properties>
@@ -38,7 +39,10 @@
 
         <!-- origin -->
         <origin.working.directory>${project.build.directory}/origin-sources</origin.working.directory>
-        <source.zip>Loinc_2.80.zip</source.zip>
+        <source.version>2.80</source.version>
+        <source.zip>${user.home}/Downloads/Loinc_${source.version}.zip</source.zip>
+        <dataStoreLocation>${project.basedir}/../../loinc-data/target</dataStoreLocation>
+        <dataStore>loinc</dataStore>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -184,6 +188,12 @@
                     <groupId>dev.ikm.maven</groupId>
                     <artifactId>loinc-starterdata-maven-plugin</artifactId>
                     <version>1.0.0-SNAPSHOT</version>
+                </plugin>
+                <!-- Skip Staging Plugin -->
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <inherited>false</inherited>
                 </plugin>
             </plugins>
         </pluginManagement>
