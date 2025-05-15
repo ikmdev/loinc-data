@@ -29,7 +29,7 @@
                 <version>1.0.0-SNAPSHOT</version>
                 <configuration>
                     <namespaceString>${origin.namespace}</namespaceString>
-                    <datastorePath>${user.home}/Solor/generated-data</datastorePath>
+                    <datastorePath>${dataStoreLocation}/${dataStore}</datastorePath>
                     <inputDirectoryPath>${user.home}/.m2/repository/dev/ikm/loinc/loinc-origin/${project.version}/loinc-origin-${project.version}-data.zip</inputDirectoryPath>
                     <dataOutputPath>${project.build.directory}</dataOutputPath>
                 </configuration>

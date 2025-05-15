@@ -28,14 +28,14 @@
                         <configuration>
                             <filesets>
                                 <fileset>
-                                    <directory>${user.home}/Solor/${tinkar-starter-data.artifactId}-${tinkar-starter-data.version}-${tinkar-starter-data.classifier}</directory>
+                                    <directory>${dataStoreLocation}/${tinkar-starter-data.artifactId}-${tinkar-starter-data.version}-${tinkar-starter-data.classifier}</directory>
                                     <includes>
                                         <include>**</include>
                                     </includes>
                                     <followSymlinks>false</followSymlinks>
                                 </fileset>
                                 <fileset>
-                                    <directory>${user.home}/Solor/generated-data</directory>
+                                    <directory>${dataStoreLocation}/${dataStore}</directory>
                                     <includes>
                                         <include>**</include>
                                     </includes>
@@ -46,7 +46,6 @@
                     </execution>
                 </executions>
             </plugin>
-            
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -66,7 +65,7 @@
                                     <classifier>${tinkar-starter-data.classifier}</classifier>
                                     <type>zip</type>
                                     <overWrite>true</overWrite>
-                                    <outputDirectory>${user.home}/Solor</outputDirectory>
+                                    <outputDirectory>${dataStoreLocation}</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
                         </configuration>
@@ -85,10 +84,33 @@
                         </goals>
                         <configuration>
                             <target>
-                                <move file="${user.home}/Solor/${tinkar-starter-data.artifactId}-${tinkar-starter-data.version}-${tinkar-starter-data.classifier}"
-                                      tofile="${user.home}/Solor/generated-data" />
+                                <move file="${dataStoreLocation}/${tinkar-starter-data.artifactId}-${tinkar-starter-data.version}-${tinkar-starter-data.classifier}"
+                                      tofile="${dataStoreLocation}/${dataStore}" />
                             </target>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>dev.ikm.maven.tinkar</groupId>
+                <artifactId>tinkar-maven-plugin</artifactId>
+                <version>${maven-artifacts.version}</version>
+                <configuration>
+                    <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
+                    <fileset>
+                        <directory>${starterSetLocation}</directory>
+                        <includes>
+                            <include>**/${starterSet}</include>
+                        </includes>
+                    </fileset>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>load-data</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>load-data</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
@@ -98,7 +120,7 @@
                 <version>1.0.0-SNAPSHOT</version>
                 <configuration>
                     <namespaceString>${origin.namespace}</namespaceString>
-                    <datastorePath>${user.home}/Solor/generated-data</datastorePath>
+                    <datastorePath>${dataStoreLocation}/${dataStore}</datastorePath>
                 </configuration>
                 <executions>
                     <execution>
@@ -116,7 +138,7 @@
                 <version>1.0.0-SNAPSHOT</version>
                 <configuration>
                     <namespaceString>${origin.namespace}</namespaceString>
-                    <datastorePath>${user.home}/Solor/generated-data</datastorePath>
+                    <datastorePath>${dataStoreLocation}/${dataStore}</datastorePath>
                 </configuration>
                 <executions>
                     <execution>
