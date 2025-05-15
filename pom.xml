@@ -41,7 +41,9 @@
         <origin.working.directory>${project.build.directory}/origin-sources</origin.working.directory>
         <source.version>2.80</source.version>
         <source.zip>${user.home}/Downloads/Loinc_${source.version}.zip</source.zip>
-        <dataStoreLocation>${project.basedir}/../../loinc-data/target</dataStoreLocation>
+        <starterSetLocation>${user.home}/Downloads</starterSetLocation>
+        <starterSet>FieldCategories-nonprimordial-unreasoned-pb.zip</starterSet>
+        <dataStoreLocation>${project.basedir}/../target</dataStoreLocation>
         <dataStore>loinc</dataStore>
     </properties>
     <dependencyManagement>
