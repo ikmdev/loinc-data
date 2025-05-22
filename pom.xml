@@ -18,7 +18,6 @@
     <name>LOINC Data</name>
 
     <modules>
-    <!-- 
         <module>plugin</module>
         <module>loinc-origin</module>
         <module>loinc-starterdata</module>
@@ -27,7 +26,6 @@
         <module>loinc-reasoner</module>
         <module>loinc-integration</module>
         <module>loinc-export</module>
-    -->
     </modules>
 
     <properties>
