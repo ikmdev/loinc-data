@@ -6,7 +6,7 @@
     <parent>
         <groupId>dev.ikm.tinkar</groupId>
         <artifactId>loinc-data-bom</artifactId>
-        <version>1.7.0</version>
+        <version>1.8.0</version>
         <relativePath/>
     </parent>
 
@@ -18,15 +18,16 @@
     <name>LOINC Data</name>
 
     <modules>
+    <!-- 
         <module>plugin</module>
         <module>loinc-origin</module>
-        <!-- 
         <module>loinc-starterdata</module>
         <module>loinc-pipeline</module>
         <module>loinc-owl-transform</module>
         <module>loinc-reasoner</module>
         <module>loinc-integration</module>
-        <module>loinc-export</module> -->
+        <module>loinc-export</module>
+    -->
     </modules>
 
     <properties>
@@ -35,8 +36,7 @@
         <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
         <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
         <maven-dependency-plugin.version>3.8.1</maven-dependency-plugin.version>
-
-        <maven-clean-plugin.version>3.3.1</maven-clean-plugin.version>
+        <maven-clean-plugin.version>3.4.1</maven-clean-plugin.version>
         <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
 
         <!-- origin -->
