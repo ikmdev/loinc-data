@@ -517,7 +517,7 @@ public class LoincTransformationMojo extends AbstractMojo {
             try {
                 activeSession.compose(new StatedAxiom()
                     .semantic(axiomSemantic)
-                    .isA(parentArr), // for the multiple parent case, should we just call isA for each one, but still only have one semantic?
+                    .isA(parentArr),
                     rowConcept);
             } catch (Exception e) {
                 LOG.error("Error creating stated definition semantic for concept: " + rowConcept, e);
