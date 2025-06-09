@@ -18,21 +18,23 @@ import dev.ikm.tinkar.entity.graph.EntityVertex;
 import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.TinkarTerm;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-@Disabled
+
 @TestInstance(Lifecycle.PER_CLASS)
 public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
+	Map<String, List<String>> parentCache;
     /**
      * Test PartAxiom Part.csv Semantics.
      *
@@ -45,6 +47,8 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
         String errorFile = "target/failsafe-reports/PartCsv_axioms_not_found.txt";
 
         String absolutePath = findFilePath(sourceFilePath, "Part.csv");
+		String componentPath = findFilePath(sourceFilePath, "ComponentHierarchyBySystem.csv");
+		parentCache = processComponentHierarchy(componentPath);
         int notFound = processPartFile(absolutePath, errorFile);
 
         assertEquals(0, notFound, "Unable to find " + notFound + " Part.csv semantics. Details written to " + errorFile);
@@ -76,7 +80,7 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
     		String partName = removeQuotes(columns[2]);
     			
     		final StateSet active;
-    		if (columns[4].equals("ACTIVE") || columns[4].equals("TRIAL") || columns[4].equals("DISCOURAGED")) {
+    		if (columns[4].equals("ACTIVE") || columns[4].equals("TRIAL") || columns[4].equals("DISCOURAGED") || columns[4].equals("DEPRECATED")) {
     			active = StateSet.ACTIVE;
     		} else {
     			active = StateSet.INACTIVE;
@@ -87,8 +91,8 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 
     		UUID conceptUuid = UuidT5Generator.get(UUID.fromString(namespaceString), partNumber);
     		EntityProxy.Concept concept = EntityProxy.Concept.make(PublicIds.of(conceptUuid));
-    		EntityProxy.Concept parentConcept = LoincUtility.getParentForPartType(UUID.fromString(namespaceString), partTypeName);
-    		
+			final List<String> parents = parentCache.get(partNumber);
+
     		if (!partName.isEmpty() && !partTypeName.isEmpty() && !partNumber.isEmpty()) {
     			LoincUtility.addPartToCache(partName.toLowerCase(), partTypeName, partNumber);	
     		}
@@ -104,20 +108,25 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
     			innerCount.incrementAndGet();
     			
     			if(latest.isPresent()) {		
-    				if (parentConcept != null) { 
-    					DiTreeEntity fieldValue = latestAxiomPattern.getFieldWithMeaning(TinkarTerm.EL_PLUS_PLUS_STATED_TERMINOLOGICAL_AXIOMS, latest.get());
-    					
-    					EntityVertex vertex = fieldValue.firstVertexWithMeaning(TinkarTerm.CONCEPT_REFERENCE).get();
-    					if (!vertex.properties().containsValue(parentConcept)) {
-    						matched.set(false);
-    					}
-    				}
+    				if (parents != null && !parents.isEmpty()) {
+						boolean foundParents = checkParents(latestAxiomPattern, latest, parents);
+						if (!foundParents) {
+							matched.set(false);
+						} else {
+							parents.clear();
+						}
+					} else {
+						matched.set(checkParent(latestAxiomPattern, latest, LoincUtility.getParentForPartType(UUID.fromString(namespaceString), partTypeName)));
+					}
     			} else {
     				matched.set(false);
     			}
-    		});	
- 
-    		return matched.get() && innerCount.get() == 1;   		
+    		});
+			if (parents != null && !parents.isEmpty()) {
+				return false;
+			}
+
+    		return matched.get() && innerCount.get() == 1;
     	} else {
     	
 	        String loincNum = columns[0]; // LOINC_NUM
@@ -170,4 +179,24 @@ public class LoincAxiomSemanticIT extends LoincAbstractIntegrationTest {
 	        return matched.get() && innerCount.get() == 1;
     	}
     }
+	private boolean checkParents(PatternEntityVersion latestAxiomPattern, Latest<SemanticEntityVersion> latest, List<String> parents) {
+		for (String parent : parents) {
+			EntityProxy.Concept parentConcept = EntityProxy.Concept.make(PublicIds.of(uuid(parent)));
+			if (!checkParent(latestAxiomPattern, latest, parentConcept)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean checkParent(PatternEntityVersion latestAxiomPattern, Latest<SemanticEntityVersion> latest, EntityProxy.Concept parentConcept) {
+		DiTreeEntity fieldValue = latestAxiomPattern.getFieldWithMeaning(TinkarTerm.EL_PLUS_PLUS_STATED_TERMINOLOGICAL_AXIOMS, latest.get());
+
+		for (EntityVertex entityVertex : fieldValue.vertexMap()) {
+			if (entityVertex.properties().containsValue(parentConcept)) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
