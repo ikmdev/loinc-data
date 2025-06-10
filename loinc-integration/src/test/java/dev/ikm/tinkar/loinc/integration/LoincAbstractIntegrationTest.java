@@ -20,6 +20,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -162,6 +166,31 @@ public abstract class LoincAbstractIntegrationTest {
         }
         log.info("We found file: " + sourceFilePath);
         return notFound;
+    }
+
+    protected Map<String,List<String>> processComponentHierarchy(String sourceFilePath) throws IOException {
+        Map<String,List<String>> parentCache = new HashMap<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(sourceFilePath))) {
+            String line;
+            //skip first two lines of Component file:
+            br.readLine();
+            br.readLine();
+            while ((line = br.readLine()) != null) {
+                String[] columns = (line.split("\",\""));
+
+                String id = columns[3].replace("\"", ""); //Removes quotation marks (") from first column
+                String parentId = columns[2].replace("\"", ""); //Removes quotation marks (") from last column
+
+                List<String> parents = parentCache.get(id);
+                if (parents == null) {
+                    parents = new ArrayList<String>();
+                }
+                parents.add(parentId);
+                parentCache.put(id, parents);
+            }
+        }
+        log.info("We found file: " + sourceFilePath);
+        return parentCache;
     }
 
     protected UUID uuid(String id) {

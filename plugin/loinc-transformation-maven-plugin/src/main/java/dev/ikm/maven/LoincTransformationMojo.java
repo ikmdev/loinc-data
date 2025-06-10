@@ -14,6 +14,7 @@ import dev.ikm.tinkar.composer.template.AxiomSyntax;
 import dev.ikm.tinkar.composer.template.FullyQualifiedName;
 import dev.ikm.tinkar.composer.template.USDialect;
 import dev.ikm.tinkar.composer.template.StatedAxiom;
+import dev.ikm.tinkar.entity.Entity;
 import dev.ikm.tinkar.entity.EntityService;
 
 import dev.ikm.tinkar.terms.EntityProxy;
@@ -37,6 +38,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,6 +88,8 @@ public class LoincTransformationMojo extends AbstractMojo {
     private final EntityProxy.Concept loincAuthor = LoincUtility.makeConceptProxy(namespace, loincAuthorStr);
 
     private final Map<String,String> idToStatus = new ConcurrentHashMap<>();
+    private final Map<String,List<String>> parentCache = new HashMap<>();
+    private final Set<String> processedMultiParentCodes = new HashSet<>();
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -114,6 +119,7 @@ public class LoincTransformationMojo extends AbstractMojo {
             // This avoids potential concurrent modification issues with the composer
             try {
                 List<PartData> filteredParts = processPartCsvAsync();
+                processComponentParentCache();
                 processComponentRowsAsync(filteredParts, composer);
                 createPartConceptsAsync(filteredParts, composer);
                 processLeftOverComponents(composer);
@@ -181,6 +187,28 @@ public class LoincTransformationMojo extends AbstractMojo {
         return null;
     }
 
+    protected void processComponentParentCache() throws IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader(componentCsv))) {
+
+            String line;
+            //skip first two lines of Component file:
+            br.readLine();
+            br.readLine();
+            while ((line = br.readLine()) != null) {
+                String[] columns = (line.split("\",\""));
+
+                String id = columns[3].replace("\"", ""); //Removes quotation marks (") from first column
+                String parentId = columns[2].replace("\"", ""); //Removes quotation marks (") from last column
+
+                List<String> parents = parentCache.get(id);
+                if (parents == null) {
+                    parents = new ArrayList<String>();
+                }
+                parents.add(parentId);
+                parentCache.put(id, parents);
+            }
+        }
+    }
 
     /**
      * Process part.csv by filtering for specific part types
@@ -454,7 +482,7 @@ public class LoincTransformationMojo extends AbstractMojo {
         String immediateParent = removeQuotes(columns[2]);
 
         // skip if not prefixed by LP
-        if (!code.startsWith("LP")) {
+        if (!code.startsWith("LP") || processedMultiParentCodes.contains(code)) {
             return;
         }
         try {
@@ -465,13 +493,31 @@ public class LoincTransformationMojo extends AbstractMojo {
             EntityProxy.Concept rowConcept = EntityProxy.Concept.make(PublicIds.of(UuidT5Generator.get(namespace, code)));
             // Create the Axiom Semantic
             EntityProxy.Semantic axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, rowConcept.publicId().asUuidArray()[0] + code + "AXIOM")));
+            Entity entity = EntityService.get().getEntityFast(axiomSemantic.asUuidArray()[0]);
+            int count = 2;
+            while (entity!=null) {
+                axiomSemantic = EntityProxy.Semantic.make(PublicIds.of(UuidT5Generator.get(namespace, rowConcept.publicId().asUuidArray()[0] + code + "AXIOM" + count)));
+                entity = EntityService.get().getEntityFast(axiomSemantic.asUuidArray()[0]);
+                count++;
+            }
+            // We can have multiple axiomSemantics in the case where we have a Part with multiple parents
             // This will also get created during the parsing of Part later on
-            EntityProxy.Concept parentConcept = EntityProxy.Concept.make(PublicIds.of(UuidT5Generator.get(namespace, immediateParent)));
-
+            List<String> parents = parentCache.get(code);
+            List<EntityProxy.Concept> parentConcepts = new ArrayList<>();
+            if (!parents.isEmpty()) {
+                parents.forEach(parent -> {
+                    parentConcepts.add(EntityProxy.Concept.make(PublicIds.of(UuidT5Generator.get(namespace, parent))));
+                });
+                processedMultiParentCodes.add(code);
+            } else {
+                parentConcepts.add(EntityProxy.Concept.make(PublicIds.of(UuidT5Generator.get(namespace, immediateParent))));
+            }
+            EntityProxy.Concept[] parentArr = new EntityProxy.Concept[parentConcepts.size()];
+            parentArr = parentConcepts.toArray(parentArr);
             try {
                 activeSession.compose(new StatedAxiom()
                     .semantic(axiomSemantic)
-                    .isA(parentConcept),
+                    .isA(parentArr),
                     rowConcept);
             } catch (Exception e) {
                 LOG.error("Error creating stated definition semantic for concept: " + rowConcept, e);
