@@ -122,7 +122,6 @@ public class LoincStarterDataMojo extends AbstractMojo {
     }
 
     private void createLoincAuthor(Session session) {
-        session = composer.open(State.ACTIVE, STAMP_TIME, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
         createConcept(session, loincAuthorStr, "LOINC Starter Data Author",
                 "Regenstrief Institute, Inc. Starter Data Author - The entity responsible for publishing LOINC",
                 loincAuthor, USER);
