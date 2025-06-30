@@ -54,7 +54,7 @@ public class LoincStarterDataMojo extends AbstractMojo {
 
     private static final long STAMP_TIME = System.currentTimeMillis();
 
-    private final String loincAuthorStr = "Regenstrief Institute, Inc. Author";
+    private final String loincAuthorStr = "Regenstrief Institute, Inc. Starter Data Author";
     private final EntityProxy.Concept loincAuthor = makeConceptProxy(loincAuthorStr);
 
     @Parameter(property = "origin.namespace", required = true)
@@ -109,9 +109,8 @@ public class LoincStarterDataMojo extends AbstractMojo {
     void transform() {
         EntityService.get().beginLoadPhase();
         try {
-            createLoincAuthor();
-
             Session session = composer.open(State.ACTIVE, STAMP_TIME, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
+            createLoincAuthor(session);
             createConcepts(session);
             createPatterns(session);
 
@@ -122,10 +121,9 @@ public class LoincStarterDataMojo extends AbstractMojo {
         }
     }
 
-    private void createLoincAuthor() {
-        Session session = composer.open(State.ACTIVE, STAMP_TIME, TinkarTerm.USER, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
-        createConcept(session, loincAuthorStr, "LOINC Author",
-                "Regenstrief Institute, Inc. Author - The entity responsible for publishing LOINC",
+    private void createLoincAuthor(Session session) {
+        createConcept(session, loincAuthorStr, "LOINC Starter Data Author",
+                "Regenstrief Institute, Inc. Starter Data Author - The entity responsible for publishing LOINC",
                 loincAuthor, USER);
     }
 
