@@ -11,7 +11,11 @@ import dev.ikm.tinkar.composer.Session;
 import dev.ikm.tinkar.composer.assembler.ConceptAssembler;
 import dev.ikm.tinkar.composer.assembler.SemanticAssembler;
 import dev.ikm.tinkar.composer.template.AxiomSyntax;
+import dev.ikm.tinkar.composer.template.Definition;
 import dev.ikm.tinkar.composer.template.FullyQualifiedName;
+import dev.ikm.tinkar.composer.template.Identifier;
+import dev.ikm.tinkar.composer.template.StatedNavigation;
+import dev.ikm.tinkar.composer.template.Synonym;
 import dev.ikm.tinkar.composer.template.USDialect;
 import dev.ikm.tinkar.composer.template.StatedAxiom;
 import dev.ikm.tinkar.entity.Entity;
@@ -52,7 +56,11 @@ import java.util.function.BiConsumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static dev.ikm.tinkar.terms.TinkarTerm.DESCRIPTION_NOT_CASE_SENSITIVE;
+import static dev.ikm.tinkar.terms.TinkarTerm.ENGLISH_LANGUAGE;
 import static dev.ikm.tinkar.terms.TinkarTerm.FULLY_QUALIFIED_NAME_DESCRIPTION_TYPE;
+import static dev.ikm.tinkar.terms.TinkarTerm.UNIVERSALLY_UNIQUE_IDENTIFIER;
+import static dev.ikm.tinkar.terms.TinkarTerm.USER;
 
 @Mojo(name = "run-loinc-transformation", defaultPhase = LifecyclePhase.INSTALL)
 public class LoincTransformationMojo extends AbstractMojo {
@@ -118,6 +126,7 @@ public class LoincTransformationMojo extends AbstractMojo {
             // Process part.csv first, then process loinc.csv
             // This avoids potential concurrent modification issues with the composer
             try {
+                createLoincAuthor(composer);
                 List<PartData> filteredParts = processPartCsvAsync();
                 processComponentParentCache();
                 processComponentRowsAsync(filteredParts, composer);
@@ -140,6 +149,49 @@ public class LoincTransformationMojo extends AbstractMojo {
         }
     }
 
+    private void createLoincAuthor(Composer composer) {
+        createConcept(composer, loincAuthorStr, "LOINC Author",
+                "Regenstrief Institute, Inc. Author - The entity responsible for publishing LOINC",
+                loincAuthor, USER);
+    }
+
+    private void createConcept(Composer composer, String fullyQualifiedName, String synonym, String definition,
+                               EntityProxy.Concept identifier, EntityProxy.Concept parent, EntityProxy.Concept... children) {
+
+        Session session = composer.open(State.ACTIVE, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
+
+        session.compose((ConceptAssembler conceptAssembler) -> {
+                    conceptAssembler.concept(identifier)
+                            .attach((FullyQualifiedName fqn) -> fqn
+                                    .language(ENGLISH_LANGUAGE)
+                                    .text(fullyQualifiedName)
+                                    .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
+                                    .attach(usDialect()))
+                            .attach((Identifier id) -> id
+                                    .source(UNIVERSALLY_UNIQUE_IDENTIFIER)
+                                    .identifier(identifier.asUuidArray()[0].toString()))
+                            .attach(new StatedNavigation()
+                                    .parents(parent)
+                                    .children(children));
+                        conceptAssembler.attach(new StatedAxiom()
+                                .isA(parent));
+                    if (synonym != null) {
+                        conceptAssembler.attach((Synonym syn) -> syn
+                                .language(ENGLISH_LANGUAGE)
+                                .text(synonym)
+                                .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
+                                .attach(usDialect()));
+                    }
+                    if (definition != null) {
+                        conceptAssembler.attach((Definition defn) -> defn
+                                .language(ENGLISH_LANGUAGE)
+                                .text(definition)
+                                .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
+                                .attach(usDialect()));
+                    }
+                }
+        );
+    }
 
     private void unzipRawData(String zipFilePath) throws IOException {
         File outputDirectory = new File(dataOutputPath);
