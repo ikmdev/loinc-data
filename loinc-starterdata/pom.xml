@@ -54,7 +54,7 @@
                         <id>copy-tinkar-starter-data-dependency</id>
                         <phase>generate-sources</phase>
                         <goals>
-                            <goal>unpack</goal>
+                            <goal>copy</goal>
                         </goals>
                         <configuration>
                             <artifactItems>
@@ -65,28 +65,9 @@
                                     <classifier>${tinkar-starter-data.classifier}</classifier>
                                     <type>zip</type>
                                     <overWrite>true</overWrite>
-                                    <outputDirectory>${dataStoreLocation}</outputDirectory>
+                                    <outputDirectory>${dataStoreLocation}/input-data</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>rename-file</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <move file="${dataStoreLocation}/${tinkar-starter-data.artifactId}-${tinkar-starter-data.version}-${tinkar-starter-data.classifier}"
-                                      tofile="${dataStoreLocation}/${dataStore}" />
-                            </target>
                         </configuration>
                     </execution>
                 </executions>
@@ -95,17 +76,17 @@
                 <groupId>dev.ikm.maven.tinkar</groupId>
                 <artifactId>tinkar-maven-plugin</artifactId>
                 <version>${maven-artifacts.version}</version>
-                <configuration>
-                    <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
-                    <fileset>
-                        <directory>${starterSetLocation}</directory>
-                        <includes>
-                            <include>**/${starterSet}</include>
-                        </includes>
-                    </fileset>
-                </configuration>
                 <executions>
                     <execution>
+                        <configuration>
+                            <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
+                            <fileset>
+                                <directory>${dataStoreLocation}/input-data</directory>
+                                <includes>
+                                    <include>**/*-${tinkar-starter-data.classifier}.zip</include>
+                                </includes>
+                            </fileset>
+                        </configuration>
                         <id>load-data</id>
                         <phase>install</phase>
                         <goals>
