@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>dev.ikm.tinkar</groupId>
-        <artifactId>loinc-data-bom</artifactId>
-        <version>1.11.0</version>
+        <groupId>dev.ikm.build</groupId>
+        <artifactId>java-parent</artifactId>
+        <version>1.64.0</version>
         <relativePath/>
     </parent>
 
@@ -23,7 +23,7 @@
         <module>loinc-pipeline</module>
         <module>loinc-owl-transform</module>
         <module>loinc-reasoner</module>
-        <module>loinc-integration</module>
+<!--        <module>loinc-integration</module>-->
         <module>loinc-export</module>
     </modules>
 
@@ -39,11 +39,45 @@
 
         <!-- origin -->
         <origin.working.directory>${project.build.directory}/origin-sources</origin.working.directory>
-        <source.version>2.80</source.version>
+        <source.version>2.81</source.version>
         <source.zip>${user.home}/Downloads/Loinc_${source.version}.zip</source.zip>
         <dataStoreLocation>${project.basedir}/../target</dataStoreLocation>
         <dataStore>loinc</dataStore>
+
+        <maven.compiler.source>23</maven.compiler.source>
+        <maven.compiler.target>23</maven.compiler.target>
+        <java.version>23</java.version>
+        <lucene.version>9.12.1</lucene.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <tinkar-core.version>1.121.0</tinkar-core.version>
+        <tinkar-schema.version>1.42.0</tinkar-schema.version>
+        <tinkar-transformer-api.version>1.7.0</tinkar-transformer-api.version>
+        <log4j.version>3.0.0-alpha1</log4j.version>
+        <slf4j.version>2.0.17</slf4j.version>
+        <tinkar-composer.version>1.8.0</tinkar-composer.version>
+        <eclipse-collections-api.version>12.0.0.M3-r2</eclipse-collections-api.version>
+        <maven-plugin-plugin.version>3.13.0</maven-plugin-plugin.version>
+        <maven-plugin-annotations.version>3.15.1</maven-plugin-annotations.version>
+        <maven-plugin-api.version>3.9.9</maven-plugin-api.version>
+        <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+        <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
+        <jupiter.version>5.12.2</jupiter.version>
+
+        <packager.name>IKM Dev</packager.name>
+        <origin.url>https://www.nlm.nih.gov/healthit/snomedct/us_edition.html</origin.url>
+        <origin.namespace>7b880c4c-8e54-5625-863c-c8504fa78243</origin.namespace>
+
+        <!-- starter data -->
+        <tinkar-starter-data.groupId>dev.ikm.data.tinkar</tinkar-starter-data.groupId>
+        <tinkar-starter-data.artifactId>tinkar-starter-data</tinkar-starter-data.artifactId>
+        <tinkar-starter-data.classifier>unreasoned-pb</tinkar-starter-data.classifier>
+        <tinkar-starter-data.version>20250813</tinkar-starter-data.version>
+        <!-- reasoner options (ElkOwlReasoner, ElkSnomedReasoner, HybridReasoner)-->
+        <reasoner-type>ElkSnomedReasoner</reasoner-type>
     </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -136,8 +170,53 @@
                 <artifactId>junit-jupiter</artifactId>
                 <version>${jupiter.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>${tinkar-starter-data.groupId}</groupId>
+                <artifactId>${tinkar-starter-data.artifactId}</artifactId>
+                <classifier>${tinkar-starter-data.classifier}</classifier>
+                <version>${tinkar-starter-data.version}</version>
+            </dependency>
+
+            <!-- Lucene -->
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-queryparser</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-queries</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-highlighter</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-core</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-suggest</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-backward-codecs</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
+
     <build>
         <pluginManagement>
             <plugins>
