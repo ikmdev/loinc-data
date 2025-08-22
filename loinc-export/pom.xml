@@ -18,13 +18,10 @@
     <properties>
         <data-artifact.groupId>dev.ikm.tinkar.data</data-artifact.groupId>
         <data-artifact.artifactId>loinc</data-artifact.artifactId>
-        <data-artifact.filename>${data-artifact.path-prefix}-data.zip</data-artifact.filename>
-        <data-artifact.version>${source.version}-1.0.4</data-artifact.version>
+        <data-artifact.filename>${data-artifact.path-prefix}</data-artifact.filename>
+        <data-artifact.version>${source.version}-1.0.0</data-artifact.version>
         <data-artifact.prefix>${project.artifactId}-${project.version}</data-artifact.prefix>
         <data-artifact.path-prefix>${project.build.directory}/${data-artifact.prefix}</data-artifact.path-prefix>
-        <deploymentFiles>${project.basedir}/pom.xml</deploymentFiles>
-        <deploymentClassifiers>reasoned-sa</deploymentClassifiers>
-        <deploymentTypes>xml</deploymentTypes>
         <deployNexusURL>https://nexus.tinkarbuild.com/repository/private-assets/</deployNexusURL>
         <deployToNexus>false</deployToNexus>
     </properties>
@@ -41,6 +38,25 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>dev.ikm.maven.tinkar</groupId>
+                <artifactId>tinkar-maven-plugin</artifactId>
+                <executions>
+                    <!-- Export reasoned data as a protocol buffers zip file (package) -->
+                    <execution>
+                        <id>${project.artifactId}-reasoned-export</id>
+                        <goals>
+                            <goal>export-tinkar-data</goal>
+                        </goals>
+                        <configuration>
+                            <exportDirectory>${project.build.directory}</exportDirectory>
+                            <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
+                            <fileName>${data-artifact.filename}-reasoned-pb.zip</fileName>
+                            <isolate>false</isolate>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
@@ -53,7 +69,7 @@
                         <configuration>
                             <inlineDescriptors>
                                 <inlineDescriptor>
-                                    <id>data</id>
+                                    <id>reasoned-sa</id>
                                     <formats>
                                         <format>zip</format>
                                     </formats>
@@ -128,7 +144,7 @@
                         <artifactId>maven-deploy-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>deploy-zip-artifacts</id>
+                                <id>deploy-reasoned-sa</id>
                                 <phase>deploy</phase>
                                 <goals>
                                     <goal>deploy-file</goal>
@@ -140,11 +156,27 @@
                                     <artifactId>${data-artifact.artifactId}</artifactId>
                                     <version>${data-artifact.version}</version>
                                     <pomFile>${project.build.directory}/loinc-export-pom.xml</pomFile>
-                                    <file>${data-artifact.filename}</file>
+                                    <file>${data-artifact.filename}-reasoned-sa.zip</file>
                                     <packaging>zip</packaging>
-                                    <files>${deploymentFiles}</files>
-                                    <classifiers>${deploymentClassifiers}</classifiers>
-                                    <types>${deploymentTypes}</types>
+                                    <classifier>reasoned-sa</classifier>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>deploy-reasoned-pb</id>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>deploy-file</goal>
+                                </goals>
+                                <configuration>
+                                    <repositoryId>nexus</repositoryId>
+                                    <url>${deployNexusURL}</url>
+                                    <groupId>${data-artifact.groupId}</groupId>
+                                    <artifactId>${data-artifact.artifactId}</artifactId>
+                                    <version>${data-artifact.version}</version>
+                                    <pomFile>${project.build.directory}/loinc-export-pom.xml</pomFile>
+                                    <file>${data-artifact.filename}-reasoned-pb.zip</file>
+                                    <packaging>zip</packaging>
+                                    <classifier>reasoned-pb</classifier>
                                 </configuration>
                             </execution>
                         </executions>
