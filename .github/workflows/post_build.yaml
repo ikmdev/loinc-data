@@ -32,8 +32,8 @@ jobs:
             nexus_repo_password: ${{secrets.EC2_NEXUS_PASSWORD}}
             branch_name: ${{github.event.workflow_run.head_branch}}
             github_token: ${{secrets.GITHUB_TOKEN}}
-            maven_central_username: ${{secrets.MC_SECRET_USERNAME}}
-            maven_central_password: ${{secrets.MC_SECRET_PASSWORD}}
+#           maven_central_username: ${{secrets.MC_SECRET_USERNAME}}
+#           maven_central_password: ${{secrets.MC_SECRET_PASSWORD}}
             gpg_key: ${{secrets.GPG_KEY}}
             gpg_passphrase: ${{secrets.GPG_PASSPHRASE}}
             sonarcloud_token: ${{ secrets.SONAR_TOKEN }}
