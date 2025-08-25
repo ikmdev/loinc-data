@@ -268,12 +268,12 @@
                     <artifactId>loinc-starterdata-maven-plugin</artifactId>
                     <version>1.0.0-SNAPSHOT</version>
                 </plugin>
-                <!-- Skip Staging Plugin -->
+                <!-- Skip Staging Plugin for maven central -->
                 <plugin>
-                    <groupId>org.sonatype.plugins</groupId>
-                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <groupId>org.sonatype.central</groupId>
+                    <artifactId>central-publishing-maven-plugin</artifactId>
                     <inherited>false</inherited>
-                </plugin>
+                </plugin>                
             </plugins>
         </pluginManagement>
     </build>
