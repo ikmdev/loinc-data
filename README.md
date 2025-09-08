@@ -1,41 +1,42 @@
-# Title
-
-|| Description about the Project ||
+# loinc-data
 
 ### Team Ownership - Product Owner
-
-Team Ownership - Product Owner
+Data Team
 
 ## Getting Started
 
-Required for running this:
+Follow these instructions to generate a loinc dataset:
 
-1. Download and install Open JDK Java 23
-
-## Building and Running
-
-Follow the steps below to build and run Komet on your local machine:
-
-1. Clone the repository from GitHub to your local machine
-
-2. Change local directory to cloned repo location
-
-3. Enter the following command to build the application:
-
-Unix/Linux/OSX:
+1. Clone the [loinc-data repository](https://github.com/ikmdev/loinc-data)
 
 ```bash
-./mvnw clean install
+git clone [Rep URL]
 ```
 
-Windows:
+2. Change local directory to `loinc-data`
+
+3. Download Loinc file from LOINC site: https://loinc.org/downloads/
+
+4. Place the downloaded Loinc_*_.zip in your local Downloads directory.
+
+5. Ensure the loinc-data/pom.xml contains the proper tags containing source filename for the downloaded files such as:
+   <source.zip>, <source.version>, etc.
+
+6. Create a ~/Solor directory and ensure ~/Solor/generated-data does not exist or is empty.
+
+7. You can create a reasoned or unreasoned dataset by either including or commenting out the loinc-data/pom.xml <module>loinc-reasoner</module>
+
+8. Enter the following command to build the dataset:
 
 ```bash
-./mvnw.cmd clean install
+mvn clean install -U "-DMaven.build.cache.enable=false"
 ```
 
-## Issues and Contributions
-Technical and non-technical issues can be reported to the [Issue Tracker](https://github.com/ikmdev/repo-seed/issues).
+9. Enter the following command to deploy the dataset:
 
-Contributions can be submitted via pull requests. Please check the [contribution guide](doc/how-to-contribute.md) for more details.
+```bash
+mvn deploy -f loinc-export "-DdeployToNexus=true" "-Dmaven.deploy.skip=true" "-Dmaven.build.cache.enabled=false"
+```
+
+- NOTE. This repo is built on top of an unreasoned spined array DB from snomed-ct-data. Therefore, make sure you have it built before running step #8.
 
