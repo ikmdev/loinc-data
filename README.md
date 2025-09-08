@@ -38,4 +38,5 @@ mvn clean install -U "-DMaven.build.cache.enable=false"
 mvn deploy -f loinc-export "-DdeployToNexus=true" "-Dmaven.deploy.skip=true" "-Dmaven.build.cache.enabled=false"
 ```
 
+- NOTE. This repo is built on top of an unreasoned spined array DB from snomed-ct-data. Therefore, make sure you have it built before running step #8.
 
