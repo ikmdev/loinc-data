@@ -15,9 +15,9 @@ git clone [Rep URL]
 
 2. Change local directory to `loinc-data`
 
-3. Download US or International RF2 Files from SNOMED CT: https://www.nlm.nih.gov/healthit/snomedct/index.html
+3. Download Loinc file from LOINC site: https://loinc.org/downloads/
 
-4. Place the downloaded SnomedCT_*_.zip in your local Downloads directory.
+4. Place the downloaded Loinc_*_.zip in your local Downloads directory.
 
 5. Ensure the loinc-data/pom.xml contains the proper tags containing source filename for the downloaded files such as:
    <source.zip>, <source.version>, etc.
