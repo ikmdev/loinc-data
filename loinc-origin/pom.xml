@@ -14,6 +14,27 @@
     <packaging>pom</packaging>
 
     <name>loinc-origin</name>
+    
+    <!-- Properties For Deploying Zip To Nexus -->
+    <properties>
+        <data-artifact.groupId>dev.ikm.data.loinc</data-artifact.groupId>
+        <data-artifact.artifactId>loinc-origin</data-artifact.artifactId>
+        <data-artifact.filename>${data-artifact.path-prefix}</data-artifact.filename>
+        <data-artifact.version>Loinc_${source.version}+1.0.0-SNAPSHOT</data-artifact.version>
+        <data-artifact.prefix>${project.artifactId}-${project.version}</data-artifact.prefix>
+        <data-artifact.path-prefix>${project.build.directory}/${data-artifact.prefix}</data-artifact.path-prefix>
+        <deployNexusURL>https://nexus.tinkarbuild.com/repository/maven-snapshots/</deployNexusURL>
+        <deployToNexus>false</deployToNexus>
+    </properties>
+    
+    <!-- Distribution info for private assets repo in Nexus -->
+    <distributionManagement>
+        <repository>
+            <id>nexus</id>
+            <name>private-assets-nexus</name>
+            <url>${deployNexusURL}</url>
+        </repository>
+    </distributionManagement>    
 
     <build>
         <plugins>
@@ -125,4 +146,76 @@
             <!--            </plugin>-->
         </plugins>
     </build>
+    
+    <profiles>
+        <!-- Profile to generate data/template pom -->
+        <profile>
+            <id>generateData</id>
+            <activation>
+                <property>
+                    <name>deployToNexus</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>templating-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>inject-maven-properties</id>
+                                <goals>
+                                    <goal>filter-sources</goal>
+                                </goals>
+                                <configuration>
+                                    <sourceDirectory>loinc-origin-pom-template</sourceDirectory>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                    <skipPoms>false</skipPoms>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Deploy Zip File To Nexus -->
+        <profile>
+            <id>deployZipArtifacts</id>
+            <activation>
+                <property>
+                    <name>deployToNexus</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>deploy-origin-data</id>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>deploy-file</goal>
+                                </goals>
+                                <configuration>
+                                    <repositoryId>nexus</repositoryId>
+                                    <url>${deployNexusURL}</url>
+                                    <groupId>${data-artifact.groupId}</groupId>
+                                    <artifactId>${data-artifact.artifactId}</artifactId>
+                                    <version>${data-artifact.version}</version>
+                                    <pomFile>${project.build.directory}/loinc-origin-pom.xml</pomFile>
+                                    <file>${data-artifact.filename}-data.zip</file>
+                                    <packaging>zip</packaging>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>        
 </project>
