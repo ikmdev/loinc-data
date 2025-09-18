@@ -110,23 +110,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>dev.ikm.loinc</groupId>
-                <artifactId>loinc-starterdata-maven-plugin</artifactId>
-                <configuration>
-                    <namespaceString>${origin.namespace}</namespaceString>
-                    <datastorePath>${dataStoreLocation}/${dataStore}</datastorePath>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>run-loinc-starterdata</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>run-loinc-starterdata</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>           
         </plugins>
     </build>
