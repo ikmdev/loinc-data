@@ -7,215 +7,153 @@
         <groupId>dev.ikm.loinc</groupId>
         <artifactId>loinc-data</artifactId>
         <version>1.0.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <groupId>dev.ikm.data.loinc</groupId>
     <artifactId>loinc-origin</artifactId>
+    <version>${revision}</version>
     <packaging>pom</packaging>
+
 
     <name>loinc-origin</name>
     
-    <!-- Properties For Deploying Zip To Nexus -->
     <properties>
-        <data-artifact.groupId>dev.ikm.data.loinc</data-artifact.groupId>
-        <data-artifact.artifactId>loinc-origin</data-artifact.artifactId>
-        <data-artifact.filename>${data-artifact.path-prefix}</data-artifact.filename>
-        <data-artifact.version>Loinc_${source.version}+1.0.0-SNAPSHOT</data-artifact.version>
-        <data-artifact.prefix>${project.artifactId}-${project.version}</data-artifact.prefix>
-        <data-artifact.path-prefix>${project.build.directory}/${data-artifact.prefix}</data-artifact.path-prefix>
-        <deployNexusURL>https://nexus.tinkarbuild.com/repository/maven-snapshots/</deployNexusURL>
-        <deployToNexus>false</deployToNexus>
+        <revision>${dataStore}-${source.version}+1.0.0-SNAPSHOT</revision>
     </properties>
-    
-    <!-- Distribution info for private assets repo in Nexus -->
-    <distributionManagement>
-        <repository>
-            <id>nexus</id>
-            <name>private-assets-nexus</name>
-            <url>${deployNexusURL}</url>
-        </repository>
-    </distributionManagement>    
+     
+	<profiles>
+		<profile>
+			<id>generateDataLocal</id>
+			<activation>
+				<property>
+					<name>altDeploymentRepository</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<!-- Unzip source data -->
+					<plugin>
+						<groupId>dev.ikm.maven.tinkar</groupId>
+						<artifactId>tinkar-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>process-origin</id>
+								<goals>
+									<goal>unzip-source</goal>
+								</goals>
+								<configuration>
+									<source>${source.zip}</source>
+									<outputDirectory>${origin.working.directory}</outputDirectory>
+								</configuration>
+							</execution>
+							<execution>
+								<id>create-origin-manifest</id>
+								<goals>
+									<goal>generate-manifest-resource</goal>
+								</goals>
+								<configuration>
+									<packagerName>${packager.name}</packagerName>
+									<originVersion>${project.version}</originVersion>
+									<originURL>${origin.url}</originURL>
+									<originNamespace>${origin.namespace}</originNamespace>
+									<outputDirectory>${origin.working.directory}</outputDirectory>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
 
-    <build>
-        <plugins>
-            <!-- Unzip source data -->
-            <plugin>
-                <groupId>dev.ikm.maven.tinkar</groupId>
-                <artifactId>tinkar-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>process-origin</id>
-                        <goals>
-                            <goal>unzip-source</goal>
-                        </goals>
-                        <configuration>
-                            <source>${source.zip}</source>
-                            <outputDirectory>${origin.working.directory}</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>create-origin-manifest</id>
-                        <goals>
-                            <goal>generate-manifest-resource</goal>
-                        </goals>
-                        <configuration>
-                            <packagerName>${packager.name}</packagerName>
-                            <originVersion>${project.version}</originVersion>
-                            <originURL>${origin.url}</originURL>
-                            <originNamespace>${origin.namespace}</originNamespace>
-                            <outputDirectory>${origin.working.directory}</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Assemble and zip data into Tinkar Origin Artifact -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>assemble-origin-artifact</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <inlineDescriptors>
-                                <inlineDescriptor>
-                                    <id>data</id>
-                                    <formats>
-                                        <format>zip</format>
-                                    </formats>
-                                    <fileSets>
-                                        <fileSet>
-                                            <outputDirectory>src</outputDirectory>
-                                            <directory>${origin.working.directory}</directory>
-                                            <includes>
-                                                <include>**</include>
-                                            </includes>
-                                            <excludes>
-                                                <exclude>MANIFEST.MF</exclude>
-                                            </excludes>
-                                        </fileSet>
-                                        <fileSet>
-                                            <outputDirectory>META-INF</outputDirectory>
-                                            <directory>${origin.working.directory}</directory>
-                                            <includes>
-                                                <include>MANIFEST.MF</include>
-                                            </includes>
-                                        </fileSet>
-                                    </fileSets>
-                                    <includeBaseDirectory>false</includeBaseDirectory>
-                                </inlineDescriptor>
-                            </inlineDescriptors>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Attach Tinkar Origin Artifact to project -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-artifacts</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>attach-artifact</goal>
-                        </goals>
-                        <configuration>
-                            <artifacts>
-                                <artifact>
-                                    <file>${project.build.directory}/${project.artifactId}-${project.version}-data.zip
-                                    </file>
-                                    <type>zip</type>
-                                </artifact>
-                            </artifacts>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Deploy to Nexus -->
-            <!--            <plugin>-->
-            <!--                <groupId>org.apache.maven.plugins</groupId>-->
-            <!--                <artifactId>maven-deploy-plugin</artifactId>-->
-            <!--                <version>3.1.2</version>-->
-            <!--                <configuration>-->
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>flatten-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>flatten-test</id>
+								<phase>initialize</phase>
+								<goals>
+									<goal>flatten</goal>
+								</goals>
+								<configuration>
+									<flattenMode>resolveCiFriendliesOnly</flattenMode>
+									<updatePomFile>true</updatePomFile>
+									<keepCommentsInPom>true</keepCommentsInPom>
+									<outputDirectory>${project.build.directory}</outputDirectory>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
 
-            <!--                </configuration>-->
-            <!--            </plugin>-->
-        </plugins>
-    </build>
-    
-    <profiles>
-        <!-- Profile to generate data/template pom -->
-        <profile>
-            <id>generateData</id>
-            <activation>
-                <property>
-                    <name>deployToNexus</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>templating-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>inject-maven-properties</id>
-                                <goals>
-                                    <goal>filter-sources</goal>
-                                </goals>
-                                <configuration>
-                                    <sourceDirectory>loinc-origin-pom-template</sourceDirectory>
-                                    <outputDirectory>${project.build.directory}</outputDirectory>
-                                    <skipPoms>false</skipPoms>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <!-- Deploy Zip File To Nexus -->
-        <profile>
-            <id>deployZipArtifacts</id>
-            <activation>
-                <property>
-                    <name>deployToNexus</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-deploy-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>deploy-origin-data</id>
-                                <phase>deploy</phase>
-                                <goals>
-                                    <goal>deploy-file</goal>
-                                </goals>
-                                <configuration>
-                                    <repositoryId>nexus</repositoryId>
-                                    <url>${deployNexusURL}</url>
-                                    <groupId>${data-artifact.groupId}</groupId>
-                                    <artifactId>${data-artifact.artifactId}</artifactId>
-                                    <version>${data-artifact.version}</version>
-                                    <pomFile>${project.build.directory}/loinc-origin-pom.xml</pomFile>
-                                    <file>${data-artifact.filename}-data.zip</file>
-                                    <packaging>zip</packaging>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>        
+					<!-- Assemble and zip data into Tinkar Origin Artifact -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>assemble-origin-artifact</id>
+								<phase>package</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+								<configuration>
+									<inlineDescriptors>
+										<inlineDescriptor>
+											<id>data</id>
+											<formats>
+												<format>zip</format>
+											</formats>
+											<fileSets>
+												<fileSet>
+													<outputDirectory>src</outputDirectory>
+													<directory>
+														${origin.working.directory}</directory>
+													<includes>
+														<include>**</include>
+													</includes>
+													<excludes>
+														<exclude>MANIFEST.MF</exclude>
+													</excludes>
+												</fileSet>
+												<fileSet>
+													<outputDirectory>META-INF</outputDirectory>
+													<directory>
+														${origin.working.directory}</directory>
+													<includes>
+														<include>MANIFEST.MF</include>
+													</includes>
+												</fileSet>
+											</fileSets>
+											<includeBaseDirectory>false</includeBaseDirectory>
+										</inlineDescriptor>
+									</inlineDescriptors>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<!-- Attach Tinkar Origin Artifact to project -->
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-artifacts</id>
+								<phase>install</phase>
+								<goals>
+									<goal>attach-artifact</goal>
+								</goals>
+								<configuration>
+									<artifacts>
+										<artifact>
+											<file>
+												${project.build.directory}/${project.artifactId}-${project.version}-data.zip
+											</file>
+											<type>zip</type>
+										</artifact>
+									</artifacts>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

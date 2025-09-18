@@ -75,7 +75,6 @@
             <plugin>
                 <groupId>dev.ikm.maven.tinkar</groupId>
                 <artifactId>tinkar-maven-plugin</artifactId>
-                <version>${maven-artifacts.version}</version>
                 <executions>
                     <execution>
                         <configuration>
@@ -96,27 +95,8 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>dev.ikm.maven</groupId>
-                <artifactId>snomed-ct-starterdata-maven-plugin</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
-                <configuration>
-                    <namespaceString>${origin.namespace}</namespaceString>
-                    <datastorePath>${dataStoreLocation}/${dataStore}</datastorePath>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>run-snomed-starterdata</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>run-snomed-starterdata</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>dev.ikm.loinc</groupId>
                 <artifactId>loinc-starterdata-maven-plugin</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
                 <configuration>
                     <namespaceString>${origin.namespace}</namespaceString>
                     <datastorePath>${dataStoreLocation}/${dataStore}</datastorePath>

@@ -272,9 +272,37 @@
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
                     <artifactId>central-publishing-maven-plugin</artifactId>
-                    <inherited>false</inherited>
-                </plugin>                
+                    <configuration>
+                        <skipPublishing>false</skipPublishing>
+                    </configuration>
+                </plugin>           
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>flatten-maven-plugin</artifactId>
+                    <version>1.7.2</version>
+                </plugin>                     
             </plugins>
         </pluginManagement>
+        
+        <plugins>
+            <!-- Skip Enforcer Rule -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-no-bad-sections</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Don't enforce SemVer for this project -->
+                            <rulesToSkip>requireProperty</rulesToSkip>
+                            <failIfNoRules>false</failIfNoRules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>        
     </build>
 </project>

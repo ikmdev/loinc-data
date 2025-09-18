@@ -7,7 +7,9 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>loinc-export</artifactId>
+    <groupId>dev.ikm.data.loinc</groupId>
+    <artifactId>loinc</artifactId>
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <name>loinc-export</name>
@@ -16,167 +18,98 @@
     <!-- Properties For Deploying Zip To Nexus -->
 
     <properties>
-        <data-artifact.groupId>dev.ikm.tinkar.data</data-artifact.groupId>
-        <data-artifact.artifactId>loinc</data-artifact.artifactId>
-        <data-artifact.filename>${data-artifact.path-prefix}</data-artifact.filename>
-        <data-artifact.version>${source.version}-1.0.0</data-artifact.version>
-        <data-artifact.prefix>${project.artifactId}-${project.version}</data-artifact.prefix>
-        <data-artifact.path-prefix>${project.build.directory}/${data-artifact.prefix}</data-artifact.path-prefix>
-        <deployNexusURL>https://nexus.tinkarbuild.com/repository/private-assets/</deployNexusURL>
-        <deployToNexus>false</deployToNexus>
+        <revision>${dataStore}-${source.version}+1.0.0-SNAPSHOT</revision>
     </properties>
 
-    <!-- Distribution info for private assets repo in Nexus -->
-    <distributionManagement>
-        <repository>
-            <id>nexus</id>
-            <name>private-assets-nexus</name>
-            <url>${deployNexusURL}</url>
-        </repository>
-    </distributionManagement>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>dev.ikm.maven.tinkar</groupId>
-                <artifactId>tinkar-maven-plugin</artifactId>
-                <executions>
-                    <!-- Export reasoned data as a protocol buffers zip file (package) -->
-                    <execution>
-                        <id>${project.artifactId}-reasoned-export</id>
-                        <goals>
-                            <goal>export-tinkar-data</goal>
-                        </goals>
-                        <configuration>
-                            <exportDirectory>${project.build.directory}</exportDirectory>
-                            <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
-                            <fileName>${data-artifact.filename}-reasoned-pb.zip</fileName>
-                            <isolate>false</isolate>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>assemble-origin-artifact</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <inlineDescriptors>
-                                <inlineDescriptor>
-                                    <id>reasoned-sa</id>
-                                    <formats>
-                                        <format>zip</format>
-                                    </formats>
-                                    <fileSets>
-                                        <fileSet>
-                                            <outputDirectory>${dataStore}</outputDirectory>
-                                            <directory>${dataStoreLocation}/${dataStore}</directory>
-                                            <includes>
-                                                <include>**</include>
-                                            </includes>
-                                            <excludes>
-                                                <exclude>MANIFEST.MF</exclude>
-                                            </excludes>
-                                        </fileSet>
-                                    </fileSets>
-                                    <includeBaseDirectory>false</includeBaseDirectory>
-                                </inlineDescriptor>
-                            </inlineDescriptors>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
-
     <profiles>
-        <!-- Profile to generate data/template pom -->
         <profile>
-            <id>generateData</id>
+            <id>generateDataLocal</id>
             <activation>
                 <property>
-                    <name>deployToNexus</name>
-                    <value>true</value>
+                    <name>altDeploymentRepository</name>
                 </property>
             </activation>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>templating-maven-plugin</artifactId>
+                        <groupId>dev.ikm.maven.tinkar</groupId>
+                        <artifactId>tinkar-maven-plugin</artifactId>
                         <executions>
+                            <!-- Export reasoned data as a protocol buffers zip file (package) -->
                             <execution>
-                                <id>inject-maven-properties</id>
+                                <id>${project.artifactId}-reasoned-export</id>
                                 <goals>
-                                    <goal>filter-sources</goal>
+                                    <goal>export-tinkar-data</goal>
                                 </goals>
                                 <configuration>
-                                    <sourceDirectory>loinc-export-pom-template</sourceDirectory>
-                                    <outputDirectory>${project.build.directory}</outputDirectory>
-                                    <skipPoms>false</skipPoms>
+                                    <exportDirectory>${project.build.directory}</exportDirectory>
+                                    <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
+                                    <fileName>${project.artifactId}-${project.version}-reasoned-pb.zip</fileName>
+                                    <isolate>false</isolate>
                                 </configuration>
                             </execution>
                         </executions>
                     </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <!-- Deploy Zip File To Nexus -->
-        <profile>
-            <id>deployZipArtifacts</id>
-            <activation>
-                <property>
-                    <name>deployToNexus</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-deploy-plugin</artifactId>
+                        <artifactId>maven-assembly-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>deploy-reasoned-sa</id>
-                                <phase>deploy</phase>
+                                <id>assemble-origin-artifact</id>
+                                <phase>package</phase>
                                 <goals>
-                                    <goal>deploy-file</goal>
+                                    <goal>single</goal>
                                 </goals>
                                 <configuration>
-                                    <repositoryId>nexus</repositoryId>
-                                    <url>${deployNexusURL}</url>
-                                    <groupId>${data-artifact.groupId}</groupId>
-                                    <artifactId>${data-artifact.artifactId}</artifactId>
-                                    <version>${data-artifact.version}</version>
-                                    <pomFile>${project.build.directory}/loinc-export-pom.xml</pomFile>
-                                    <file>${data-artifact.filename}-reasoned-sa.zip</file>
-                                    <packaging>zip</packaging>
-                                    <classifier>reasoned-sa</classifier>
+                                    <inlineDescriptors>
+                                        <inlineDescriptor>
+                                            <id>reasoned-sa</id>
+                                            <formats>
+                                                <format>zip</format>
+                                            </formats>
+                                            <fileSets>
+                                                <fileSet>
+                                                    <outputDirectory>${dataStore}</outputDirectory>
+                                                    <directory>${dataStoreLocation}/${dataStore}</directory>
+                                                    <includes>
+                                                        <include>**</include>
+                                                    </includes>
+                                                    <excludes>
+                                                        <exclude>MANIFEST.MF</exclude>
+                                                    </excludes>
+                                                </fileSet>
+                                            </fileSets>
+                                            <includeBaseDirectory>false</includeBaseDirectory>
+                                        </inlineDescriptor>
+                                    </inlineDescriptors>
                                 </configuration>
                             </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Attach Tinkar export Artifact to project -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <executions>
                             <execution>
-                                <id>deploy-reasoned-pb</id>
-                                <phase>deploy</phase>
+                                <id>attach-artifacts</id>
+                                <phase>install</phase>
                                 <goals>
-                                    <goal>deploy-file</goal>
+                                    <goal>attach-artifact</goal>
                                 </goals>
                                 <configuration>
-                                    <repositoryId>nexus</repositoryId>
-                                    <url>${deployNexusURL}</url>
-                                    <groupId>${data-artifact.groupId}</groupId>
-                                    <artifactId>${data-artifact.artifactId}</artifactId>
-                                    <version>${data-artifact.version}</version>
-                                    <pomFile>${project.build.directory}/loinc-export-pom.xml</pomFile>
-                                    <file>${data-artifact.filename}-reasoned-pb.zip</file>
-                                    <packaging>zip</packaging>
-                                    <classifier>reasoned-pb</classifier>
+                                    <artifacts>
+                                        <artifact>
+                                            <file>${project.build.directory}/${project.artifactId}-${project.version}-reasoned-sa.zip</file>
+                                            <classifier>reasoned-sa</classifier>
+                                            <type>zip</type>
+                                        </artifact>
+                                        <artifact>
+                                            <file>${project.build.directory}/${project.artifactId}-${project.version}-reasoned-pb.zip</file>
+                                            <classifier>reasoned-pb</classifier>
+                                            <type>zip</type>
+                                        </artifact>
+                                    </artifacts>
                                 </configuration>
                             </execution>
                         </executions>
