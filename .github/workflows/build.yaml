@@ -1,0 +1,54 @@
+name: Build Workflow
+
+run-name: 'Build Workflow -- ${{ github.head_ref || github.ref_name }}'
+
+# Pipeline/Workflow Triggers
+on:
+    push:
+    pull_request:
+    workflow_dispatch:
+
+
+jobs:
+  pr-verification:
+    name: Pull Request Validation
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Pull Request Version Validation
+        uses: ikmdev/maven-pull-request-version-validation-action@v2.1.0
+        
+  build-job:
+    name: Build Job
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Maven Settings File
+        uses: whelk-io/maven-settings-xml-action@v22
+        with:
+          servers: '[{"id": "tinkar-nexus-private", "username": "admin", "password": "${{secrets.EC2_NEXUS_PASSWORD}}"}]'
+          mirrors: '[{"id": "tinkar-nexus-private", "mirrorOf": "*", "url": "https://nexus.tinkarbuild.com/repository/maven-private/"}]'
+          repositories: '
+            [
+              {
+                "id": "tinkar-nexus-private",
+                "name": "tinkar-nexus-private",
+                "url": "https://nexus.tinkarbuild.com/repository/maven-private/",
+                "releases": {
+                  "enabled": "true",
+                  "updatePolicy": "always",
+                  "checksumPolicy": "fail"
+                },
+                "snapshots": {
+                  "enabled": "true",
+                  "updatePolicy": "always",
+                  "checksumPolicy": "fail"
+                }
+              }
+            ]'
+          output_file: ../.m2/tinkar-settings.xml
+      - name: Build IKMDEV Code
+        uses: ikmdev/maven-clean-install-build-action@v3.5.0
+        with:
+          branch_name: ${{github.ref_name}}
+          mvn_additional_args: " -s '/home/runner/work/${{github.event.repository.name}}/.m2/tinkar-settings.xml'"
+         
