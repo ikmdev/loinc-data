@@ -32,6 +32,7 @@
                         <configuration>
                             <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
                             <reasonerType>${reasoner-type}</reasonerType>
+                            <isolate>false</isolate>
                         </configuration>
                     </execution>
                 </executions>

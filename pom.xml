@@ -73,7 +73,7 @@
         <tinkar-starter-data.groupId>dev.ikm.data.tinkar</tinkar-starter-data.groupId>
         <tinkar-starter-data.artifactId>tinkar-starter-data</tinkar-starter-data.artifactId>
         <tinkar-starter-data.classifier>unreasoned-pb</tinkar-starter-data.classifier>
-        <tinkar-starter-data.version>20250813</tinkar-starter-data.version>
+        <tinkar-starter-data.version>20250915</tinkar-starter-data.version>
         <!-- reasoner options (ElkOwlReasoner, ElkSnomedReasoner, HybridReasoner)-->
         <reasoner-type>ElkSnomedReasoner</reasoner-type>
     </properties>
