@@ -128,30 +128,6 @@
 							</execution>
 						</executions>
 					</plugin>
-					<!-- Attach Tinkar Origin Artifact to project -->
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>build-helper-maven-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>attach-artifacts</id>
-								<phase>install</phase>
-								<goals>
-									<goal>attach-artifact</goal>
-								</goals>
-								<configuration>
-									<artifacts>
-										<artifact>
-											<file>
-												${project.build.directory}/${project.artifactId}-${project.version}-data.zip
-											</file>
-											<type>zip</type>
-										</artifact>
-									</artifacts>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
 				</plugins>
 			</build>
 		</profile>
