@@ -94,6 +94,7 @@
 									<goal>single</goal>
 								</goals>
 								<configuration>
+									<appendAssemblyId>false</appendAssemblyId>
 									<inlineDescriptors>
 										<inlineDescriptor>
 											<id>data</id>
