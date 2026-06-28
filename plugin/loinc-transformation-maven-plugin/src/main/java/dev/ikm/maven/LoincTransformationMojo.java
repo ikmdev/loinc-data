@@ -160,6 +160,10 @@ public class LoincTransformationMojo extends AbstractMojo {
 
         Session session = composer.open(State.ACTIVE, loincAuthor, TinkarTerm.PRIMORDIAL_MODULE, TinkarTerm.PRIMORDIAL_PATH);
 
+        // TODO: make this deduplication workaround more robust (also in #createIdentifierSemantic(), snomed-ct-data, and snomed-ct-loinc-data)
+        UUID uuidForLoincUuidSemantic = UuidT5Generator.singleSemanticUuid(TinkarTerm.IDENTIFIER_PATTERN, identifier);
+        EntityProxy.Semantic loincUuidSemantic = EntityProxy.Semantic.make(PublicIds.of(uuidForLoincUuidSemantic));
+
         session.compose((ConceptAssembler conceptAssembler) -> {
                     conceptAssembler.concept(identifier)
                             .attach((FullyQualifiedName fqn) -> fqn
@@ -168,6 +172,7 @@ public class LoincTransformationMojo extends AbstractMojo {
                                     .caseSignificance(DESCRIPTION_NOT_CASE_SENSITIVE)
                                     .attach(usDialect()))
                             .attach((Identifier id) -> id
+                                    .semantic(loincUuidSemantic)
                                     .source(UNIVERSALLY_UNIQUE_IDENTIFIER)
                                     .identifier(identifier.asUuidArray()[0].toString()))
                             .attach(new StatedNavigation()
@@ -824,10 +829,14 @@ public class LoincTransformationMojo extends AbstractMojo {
      */
     private void createIdentifierSemantic(Session session, EntityProxy.Concept concept, String identifier) {
         EntityProxy.Concept identifierSource = LoincUtility.getLoincNumConcept(namespace);
+
+        // TODO: make this deduplication workaround more robust (also in #createConcept(), snomed-ct-data, and loinc-data)
+        UUID uuidForLoincIdSemantic = UuidT5Generator.singleSemanticUuid(TinkarTerm.IDENTIFIER_PATTERN, PublicIds.of(UuidT5Generator.get(identifier)));
+        EntityProxy.Semantic loincIdSemantic = EntityProxy.Semantic.make(PublicIds.of(uuidForLoincIdSemantic));
+
         try {
             session.compose((SemanticAssembler assembler) -> {
-                assembler.semantic(EntityProxy.Semantic.make(
-                                PublicIds.of(UuidT5Generator.get(namespace, concept.publicId().asUuidArray()[0] + identifier))))
+                assembler.semantic(loincIdSemantic)
                         .pattern(TinkarTerm.IDENTIFIER_PATTERN)
                         .reference(concept)
                         .fieldValues(fv -> fv
